@@ -1,0 +1,139 @@
+<div class="container mx-auto">
+    @if(walletState(); as state) {
+        @if (state.status === 'connected') {
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="h-20 w-20 rounded-full bg-gradient-to-br from-[rgb(var(--primary-rgb))] to-[rgb(var(--accent-rgb))] flex items-center justify-center text-4xl">
+                        🧑‍🚀
+                    </div>
+                    <div>
+                    <h1 class="text-3xl font-bold font-orbitron glow-text">{{ state.username }}</h1>
+                    <p class="text-sm text-neutral-400 font-mono">{{ state.accountId }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="glass-effect p-4 rounded-lg">
+                    <p class="text-sm text-neutral-400">NFTs Owned</p>
+                    <p class="text-3xl font-bold text-[rgb(var(--primary-rgb))]">{{ playerNfts().length }}</p>
+                </div>
+                <div class="glass-effect p-4 rounded-lg">
+                    <p class="text-sm text-neutral-400">Games Played</p>
+                    <p class="text-3xl font-bold">{{ gameHistory().length }}</p>
+                </div>
+                <div class="glass-effect p-4 rounded-lg">
+                    <p class="text-sm text-neutral-400">Best Score</p>
+                    <p class="text-3xl font-bold text-yellow-400">{{ bestScore.toLocaleString() }}</p>
+                </div>
+                <div class="glass-effect p-4 rounded-lg">
+                    <p class="text-sm text-neutral-400">Total Kills</p>
+                    <p class="text-3xl font-bold text-[rgb(var(--accent-rgb))]">{{ totalKills }}</p>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="w-full">
+                <div class="flex border-b border-[rgba(var(--primary-rgb),0.2)] mb-6">
+                    <button (click)="activeTab.set('nfts')" 
+                            [class.border-[rgb(var(--primary-rgb))]]="activeTab() === 'nfts'"
+                            [class.text-white]="activeTab() === 'nfts'"
+                            class="py-2 px-4 border-b-2 border-transparent text-neutral-400">
+                        My NFTs ({{ playerNfts().length }})
+                    </button>
+                    <button (click)="activeTab.set('history')"
+                            [class.border-[rgb(var(--primary-rgb))]]="activeTab() === 'history'"
+                            [class.text-white]="activeTab() === 'history'"
+                            class="py-2 px-4 border-b-2 border-transparent text-neutral-400">
+                        Game History ({{ gameHistory().length }})
+                    </button>
+                </div>
+
+                <!-- NFTs Content -->
+                @if(activeTab() === 'nfts') {
+                    @if (isLoadingNfts()) {
+                        <div class="text-center py-10">Loading your NFTs...</div>
+                    } @else {
+                        @if (playerNfts().length === 0) {
+                             <div class="text-center py-10 glass-effect rounded-lg">
+                                <p class="text-xl">No NFTs Yet</p>
+                                <p class="text-neutral-400">Play the game to earn NFT rewards!</p>
+                             </div>
+                        } @else {
+                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                @for(nft of playerNfts(); track nft.tokenId) {
+                                    <div class="glass-effect rounded-lg overflow-hidden">
+                                        <div class="p-4">
+                                            <h3 class="font-bold font-orbitron text-lg">{{nft.achievement.name}}</h3>
+                                            <p class="text-sm" [class]="getRarityColor(nft.achievement.rarity)">{{nft.achievement.rarity}}</p>
+                                            <p class="text-xs text-neutral-400 mt-2 h-10">{{nft.achievement.description}}</p>
+                                            <button (click)="openListForNft(nft)" class="mt-4 w-full bg-[rgba(var(--primary-rgb),0.2)] text-[rgb(var(--primary-rgb))] font-bold py-2 rounded-md hover:bg-[rgba(var(--primary-rgb),0.4)] transition-colors">
+                                                List on Marketplace
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                             </div>
+                        }
+                    }
+                }
+
+                <!-- History Content -->
+                @if (activeTab() === 'history') {
+                    @if (gameHistory().length === 0) {
+                        <div class="text-center py-10 glass-effect rounded-lg">
+                            <p class="text-xl">No Game History</p>
+                            <p class="text-neutral-400">Your past game sessions will appear here.</p>
+                        </div>
+                    } @else {
+                         <div class="space-y-4">
+                            @for(game of gameHistory(); track game.timestamp) {
+                                <div class="glass-effect p-4 rounded-lg">
+                                    <p class="text-sm text-neutral-400 mb-2">{{ game.timestamp | date:'medium' }}</p>
+                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                                        <div><p class="text-xs text-neutral-400">Score</p><p class="text-lg font-bold">{{game.score.toLocaleString()}}</p></div>
+                                        <div><p class="text-xs text-neutral-400">Kills</p><p class="text-lg font-bold">{{game.kills}}</p></div>
+                                        <div><p class="text-xs text-neutral-400">Accuracy</p><p class="text-lg font-bold">{{game.accuracy.toFixed(1)}}%</p></div>
+                                        <div><p class="text-xs text-neutral-400">Max Streak</p><p class="text-lg font-bold">{{game.maxStreak}}</p></div>
+                                        <div><p class="text-xs text-neutral-400">Level</p><p class="text-lg font-bold">{{game.level}}</p></div>
+                                    </div>
+                                </div>
+                            }
+                         </div>
+                    }
+                }
+            </div>
+
+        } @else {
+             <div class="text-center py-20">
+                <h2 class="text-2xl font-orbitron mb-4">Connect Wallet to View Profile</h2>
+                <p class="text-neutral-400">Your game stats and NFT collection will appear here once you connect.</p>
+             </div>
+        }
+    }
+</div>
+
+<!-- List NFT Dialog -->
+@if(isListingDialogOpen()) {
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50" (click)="isListingDialogOpen.set(false)">
+        <div class="glass-effect p-8 rounded-lg w-full max-w-md" (click)="$event.stopPropagation()">
+            <h2 class="font-orbitron text-2xl mb-4">List Your NFT</h2>
+            @if(selectedNftToList(); as nft) {
+                <div class="bg-black/30 p-4 rounded-md mb-4">
+                    <p class="font-bold">{{nft.achievement.name}}</p>
+                    <p class="text-sm" [class]="getRarityColor(nft.achievement.rarity)">{{nft.achievement.rarity}}</p>
+                </div>
+                <div class="space-y-2">
+                    <label for="price" class="font-bold">Price in HBAR</label>
+                    <input id="price" type="number" [(ngModel)]="listingPrice" placeholder="e.g., 150.5" class="w-full bg-black/50 border border-[rgba(var(--primary-rgb),0.3)] rounded-md p-2 focus:ring-2 focus:ring-[rgb(var(--primary-rgb))] focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button (click)="isListingDialogOpen.set(false)" class="glass-effect font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button (click)="handleListNft()" class="bg-[rgb(var(--primary-rgb))] text-black font-bold py-2 px-4 rounded-lg">Confirm Listing</button>
+                </div>
+            }
+        </div>
+    </div>
+}

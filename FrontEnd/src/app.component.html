@@ -1,0 +1,31 @@
+<!-- MODE JEU (PLEIN ÉCRAN) -->
+<ng-container *ngIf="currentView() === View.Play; else normalLayout">
+  <app-game-screen />
+</ng-container>
+
+<!-- MODE NORMAL (tout le site) -->
+<ng-template #normalLayout>
+  <div class="overflow-hidden">
+    <div class="min-h-screen text-neutral-200">
+      <!-- Reown modal -->
+      <app-wallet-connect-modal />
+
+      <div class="flex flex-col h-screen">
+        <app-navbar />
+
+        <main
+          class="flex-grow p-4 md:p-8 overflow-y-auto"
+          [class.animate-fade-out-up]="animationState() === 'exiting'"
+        >
+          <div class="animate-fade-in">
+            @switch (currentView()) { @case (View.Home) { <app-home /> } @case
+            (View.Dashboard) { <app-game-dashboard /> } @case (View.Leaderboard)
+            { <app-leaderboard /> } @case (View.Activity) {
+            <app-contract-activity-feed /> } @case (View.Marketplace) {
+            <app-marketplace /> } @case (View.Profile) { <app-profile /> } }
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+</ng-template>

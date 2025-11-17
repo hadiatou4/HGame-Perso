@@ -1,0 +1,5 @@
+{
+  "name": "Spaceship War",
+  "description": "A Web3 spaceship war game on Hedera. Features wallet connection, an NFT marketplace, real-time activity feeds, and leaderboards, all set in a futuristic Mars/Sun-inspired sci-fi theme.",
+  "requestFramePermissions": []
+}

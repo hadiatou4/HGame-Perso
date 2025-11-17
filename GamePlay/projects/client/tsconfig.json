@@ -1,0 +1,23 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "baseUrl": "./",
+        "outDir": "./dist/out-tsc",
+        "sourceMap": true,
+        "declaration": false,
+        "downlevelIteration": true,
+        "experimentalDecorators": true,
+        "moduleResolution": "node",
+        "importHelpers": true,
+        "target": "es2020",
+        "module": "es2020",
+        "lib": ["ES2022", "dom", "scripthost"],
+        "allowSyntheticDefaultImports": true,
+        "maxNodeModuleJsDepth": 2,
+        "skipLibCheck": true
+    },
+    "angularCompilerOptions": {
+        "enableI18nLegacyMessageIdFormat": false
+    },
+    "references": [{ "path": "../shared" }]
+}

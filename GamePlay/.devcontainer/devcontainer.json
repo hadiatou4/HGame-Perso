@@ -1,0 +1,40 @@
+{
+    "name": "SpaceWar Dev Container",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "24"
+        },
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "workspaceFolder": "/workspace/SpaceWar",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/SpaceWar,type=bind",
+    "forwardPorts": [4500, 8081],
+    "remoteUser": "node",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.vscode-typescript-tslint-plugin",
+                "esbenp.prettier-vscode",
+                "ms-vscode.vscode-node-azure-pack",
+                "eamodio.gitlens",
+                "dbaeumer.vscode-eslint",
+                "mhutchie.git-graph",
+                "formulahendry.auto-rename-tag",
+                "ms-azuretools.vscode-docker"
+            ]
+            // "settings": {
+            //     "terminal.integrated.shell.linux": "/bin/bash"
+            // }
+        }
+    },
+    // "postCreateCommand": "bash -lc \"pnpm -v >/dev/null 2>&1 || corepack enable && npm i -g pnpm && pnpm install --workspace || npm install --workspaces\""
+    // "postCreateCommand": "bash -lc \"pnpm -v >/dev/null 2>&1 || corepack enable && npm i -g pnpm && pnpm install --workspaces && pnpm run build --workspaces || npm install --workspaces\""
+    // "postCreateCommand": "npm install --workspaces && npm run build --workspaces && cd node_modules/phaser-game-server && npm install"
+
+    "postCreateCommand": "npm install --workspaces && npm run build --workspaces && cd node_modules/phaser-game-server && npm install --omit=dev && cd /workspace && for d in projects/*; do [ -f $d/package.json ] && (echo 'Installing in $d' && cd $d && npm install && cd -); done"
+}

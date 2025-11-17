@@ -1,0 +1,146 @@
+<ng-container *ngIf="currentView() !== View.Play">
+  <nav
+    class="sticky top-0 z-40 glass-effect p-4 shadow-lg shadow-[rgba(var(--primary-rgb),0.1)]"
+  >
+    <div class="container mx-auto flex justify-between items-center">
+      <!-- Logo -->
+      <a
+        (click)="setView(View.Home)"
+        class="flex items-center space-x-3 cursor-pointer"
+      >
+        <div
+          class="w-10 h-10 bg-gradient-to-br from-[rgb(var(--primary-rgb))] to-[rgb(var(--accent-rgb))] rounded-lg flex items-center justify-center"
+        >
+          <span class="text-2xl font-bold font-orbitron text-black">S</span>
+        </div>
+        <div class="hidden md:block">
+          <h1 class="text-xl font-bold font-orbitron neon-text-primary">
+            SPACESHIP WAR
+          </h1>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <div class="hidden lg:flex items-center space-x-6 text-lg">
+        @for (item of navItems; track item.view) { @if (!item.connected ||
+        walletState().status === 'connected') {
+        <button
+          (click)="setView(item.view)"
+          [class]="
+            'hover:text-[rgb(var(--primary-rgb))] transition-colors duration-300 ' +
+            (currentView() === item.view
+              ? 'text-[rgb(var(--primary-rgb))]'
+              : '')
+          "
+        >
+          {{ item.name }}
+        </button>
+        } }
+      </div>
+
+      <!-- Wallet Button & Mobile Menu -->
+      <div class="flex items-center space-x-4">
+        @if (walletState(); as state) { @if (state.status === 'connected') {
+        <div class="hidden sm:flex items-center space-x-3">
+          <div class="text-right glass-effect px-3 py-1.5 rounded-lg">
+            <p class="text-sm font-bold text-[rgb(var(--primary-rgb))]">
+              {{ state.username }}
+            </p>
+            <p class="text-xs text-neutral-400 font-mono">
+              {{ truncateAccountId(state.accountId) }}
+            </p>
+          </div>
+          <button
+            (click)="disconnect()"
+            class="bg-red-500/20 hover:bg-red-500/40 text-red-300 font-bold py-2 px-3 rounded-lg border border-red-500/50 transition-colors duration-300"
+          >
+            Disconnect
+          </button>
+        </div>
+        } @else {
+        <button
+          (click)="connect()"
+          class="hidden md:flex items-center bg-[rgb(var(--primary-rgb))] text-black font-bold py-2 px-5 rounded-lg hover:bg-[rgba(var(--primary-rgb),0.8)] transition-all duration-300 neon-glow-primary transform hover:scale-105"
+        >
+          <span>Connect Wallet</span>
+        </button>
+        } }
+
+        <!-- Mobile Menu Button -->
+        <button (click)="toggleMobileMenu()" class="lg:hidden p-2">
+          @if (isMobileMenuOpen()) {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+          } @else {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16m-7 6h7"
+            />
+          </svg>
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    @if (isMobileMenuOpen()) {
+    <div
+      class="lg:hidden mt-4 pt-4 border-t border-[rgba(var(--primary-rgb),0.2)]"
+    >
+      <div class="flex flex-col space-y-4">
+        @for (item of navItems; track item.view) { @if (!item.connected ||
+        walletState().status === 'connected') {
+        <button
+          (click)="setView(item.view)"
+          [class]="
+            'hover:text-[rgb(var(--primary-rgb))] transition-colors duration-300 text-left ' +
+            (currentView() === item.view
+              ? 'text-[rgb(var(--primary-rgb))]'
+              : '')
+          "
+        >
+          {{ item.name }}
+        </button>
+        } }
+        <hr class="border-[rgba(var(--primary-rgb),0.2)]" />
+        @if(walletState().status !== 'connected') {
+        <button
+          (click)="connect()"
+          class="w-full bg-[rgb(var(--primary-rgb))] text-black font-bold py-3 px-4 rounded-lg"
+        >
+          Connect Wallet
+        </button>
+        } @else {
+        <button
+          (click)="disconnect()"
+          class="w-full bg-red-500/20 text-red-300 font-bold py-3 px-4 rounded-lg"
+        >
+          Disconnect
+        </button>
+        }
+      </div>
+    </div>
+    }
+  </nav>
+</ng-container>

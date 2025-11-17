@@ -1,0 +1,4 @@
+packages:
+    - "projects/shared"
+    - "projects/server"
+    - "projects/client"

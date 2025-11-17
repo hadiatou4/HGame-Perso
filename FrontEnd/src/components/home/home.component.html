@@ -1,0 +1,68 @@
+<div class="min-h-full">
+  <!-- Hero Section -->
+  <section class="relative py-20 md:py-32 overflow-hidden min-h-[70vh] flex items-center">
+    <div class="absolute inset-0 bg-gradient-to-b from-[rgba(var(--primary-rgb),0.1)] via-transparent to-transparent"></div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-5xl md:text-7xl font-bold font-orbitron mb-6 neon-text-primary">
+          Play. Earn. Own Forever.
+        </h1>
+        <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-2xl mx-auto">
+          Experience true ownership of your in-game achievements with NFT rewards on
+          the Hedera network. Your assets are yours forever.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <button (click)="navigateTo(View.Play)" 
+                  class="bg-[rgb(var(--primary-rgb))] text-black font-bold py-3 px-8 rounded-lg text-lg
+                         hover:bg-[rgba(var(--primary-rgb),0.85)] transition-all duration-300 neon-glow-primary transform hover:scale-105">
+            LAUNCH GAME
+          </button>
+          <button (click)="navigateTo(View.Marketplace)"
+                  class="glass-effect font-bold py-3 px-8 rounded-lg text-lg
+                         border border-[rgba(var(--primary-rgb),0.3)] hover:border-[rgb(var(--primary-rgb))] hover:text-white transition-colors duration-300">
+            Explore Marketplace
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="py-16 border-y border-[rgba(var(--primary-rgb),0.15)]">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        @for(stat of stats; track stat.label) {
+          <div class="text-center">
+            <div class="text-4xl md:text-5xl font-bold font-orbitron text-[rgb(var(--primary-rgb))] mb-2">
+              {{stat.value}}
+            </div>
+            <div class="text-neutral-400">{{stat.label}}</div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-20">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold font-orbitron mb-4">Why Spaceship War?</h2>
+        <p class="text-lg text-neutral-400 max-w-2xl mx-auto">
+          The future of gaming is here, powered by blockchain.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        @for(feature of features; track feature.title) {
+          <div class="glass-effect p-8 rounded-lg hover:border-[rgba(var(--primary-rgb),0.5)] transition-colors duration-300 transform hover:-translate-y-2">
+            <h3 class="text-2xl font-bold font-orbitron mb-3 text-[rgb(var(--primary-rgb))]">{{feature.title}}</h3>
+            <p class="text-neutral-300">{{feature.description}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+</div>

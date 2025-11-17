@@ -1,0 +1,46 @@
+{
+    "name": "space-war-shared",
+    "version": "1.0.0",
+    "description": "library of game code used by both client and server",
+    "main": "dist/index.js",
+    "scripts": {
+        "clean": "rimraf ./dist",
+        "build": "tsc -b",
+        "build:dev": "npm run clean && npm run build",
+        "start": "npm run build",
+        "start:dev": "npm run build:dev",
+        "test": "cross-env TS_NODE_PROJECT='./tsconfig.test.json' npx nyc mocha"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Hedera-Gaming/SpaceWar.git"
+    },
+    "keywords": [
+        "phaser3",
+        "spaceship",
+        "html5game"
+    ],
+    "author": "Hedera-Gaming Team",
+    "license": "MIT",
+    "dependencies": {
+        "@mikewesthad/dungeon": "^2.0.1",
+        "dynamic-data-store": "^2.1.0",
+        "phaser": "^3.90.0"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.3.7",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "^20.5.0",
+        "@types/sinon": "^10.0.13",
+        "chai": "^4.3.7",
+        "cross-env": "^7.0.3",
+        "jsdom": "^27.1.0",
+        "jsdom-global": "^3.0.2",
+        "mocha": "^10.2.0",
+        "nyc": "^15.1.0",
+        "rimraf": "^3.0.2",
+        "sinon": "^15.0.1",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.8.3"
+    }
+}

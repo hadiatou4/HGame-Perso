@@ -1,0 +1,43 @@
+<div class="container mx-auto max-w-4xl">
+  <div class="text-center mb-8">
+    <h1 class="text-4xl font-orbitron font-bold neon-text-primary">Leaderboard</h1>
+    <p class="text-neutral-400 mt-2">Top pilots in the galaxy.</p>
+  </div>
+  
+  <div class="glass-effect rounded-lg overflow-hidden">
+    <table class="w-full text-left">
+      <thead class="bg-black/30">
+        <tr>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))]">Rank</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))]">Player</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for(entry of leaderboard(); track entry.rank) {
+          <tr class="border-b border-[rgba(var(--primary-rgb),0.1)] hover:bg-[rgba(var(--primary-rgb),0.05)] transition-colors"
+              [class.bg-[rgba(var(--primary-rgb),0.1)]]="entry.player === currentPlayerUsername">
+            <td class="p-4 text-xl font-bold">
+              @if (entry.rank <= 3) {
+                <span [class.text-yellow-400]="entry.rank === 1"
+                      [class.text-neutral-300]="entry.rank === 2"
+                      [class.text-orange-400]="entry.rank === 3">{{ entry.rank }}</span>
+              } @else {
+                <span>{{ entry.rank }}</span>
+              }
+            </td>
+            <td class="p-4 flex items-center space-x-3">
+              <span class="text-2xl">{{ entry.avatar }}</span>
+              <span class="font-mono">{{ entry.player }}</span>
+            </td>
+            <td class="p-4 font-mono text-xl text-right text-orange-300">{{ entry.score.toLocaleString() }}</td>
+          </tr>
+        } @empty {
+            <tr>
+                <td colspan="3" class="text-center p-8 text-neutral-500">Leaderboard data is loading or unavailable...</td>
+            </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

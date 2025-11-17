@@ -1,0 +1,97 @@
+<div class="container mx-auto">
+  <!-- Title -->
+  <div class="text-center mb-12">
+    <h1 class="text-5xl font-orbitron font-bold neon-text-primary">
+      Game Dashboard
+    </h1>
+    <p class="text-neutral-400 mt-2">Prepare for battle, pilot.</p>
+  </div>
+
+  <!-- Wallet / Network Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+    <!-- Wallet Info Card -->
+    <div
+      class="glass-effect rounded-lg p-6 border-l-4 border-[rgb(var(--primary-rgb))]"
+    >
+      <h3 class="font-orbitron text-xl mb-2 text-[rgb(var(--primary-rgb))]">
+        Wallet Connected
+      </h3>
+      <p class="text-lg font-mono break-all">{{ walletState().accountId }}</p>
+    </div>
+
+    <!-- Balance Card -->
+    <div class="glass-effect rounded-lg p-6 border-l-4 border-orange-400">
+      <h3 class="font-orbitron text-xl mb-2 text-orange-400">HBAR Balance</h3>
+      <p class="text-3xl font-mono">{{ walletState().balance }}</p>
+    </div>
+
+    <!-- Network Card -->
+    <div
+      class="glass-effect rounded-lg p-6 border-l-4 border-[rgb(var(--accent-rgb))]"
+    >
+      <h3 class="font-orbitron text-xl mb-2 text-[rgb(var(--accent-rgb))]">
+        Network
+      </h3>
+      <p class="text-lg">{{ walletState().network }}</p>
+    </div>
+  </div>
+
+  <!-- LAST GAME SUMMARY -->
+  <div
+    class="glass-effect rounded-lg p-6 mb-14 border-l-4 border-green-400"
+    *ngIf="gameStats.lastStats() as s"
+  >
+    <h3 class="font-orbitron text-2xl mb-4 text-green-400">
+      Last Game Summary
+    </h3>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 font-mono text-xl">
+      <div>
+        <p class="text-neutral-400">Score</p>
+        <p class="text-3xl font-bold text-white">{{ s.score }}</p>
+      </div>
+
+      <div>
+        <p class="text-neutral-400">Kills</p>
+        <p class="text-3xl font-bold text-white">{{ s.kills }}</p>
+      </div>
+
+      <div>
+        <p class="text-neutral-400">Accuracy</p>
+        <p class="text-3xl font-bold text-white">{{ s.accuracy }}%</p>
+      </div>
+
+      <div>
+        <p class="text-neutral-400">Time Played</p>
+        <p class="text-3xl font-bold text-white">{{ s.time }}s</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAY NOW -->
+  <div class="text-center mb-12">
+    <button
+      (click)="playNow()"
+      class="bg-green-600 text-white font-bold text-3xl py-6 px-12 rounded-lg hover:bg-green-500 transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(74,222,128,0.6)]"
+    >
+      PLAY NOW
+    </button>
+  </div>
+
+  <!-- Footer Links -->
+  <div class="flex justify-center space-x-8">
+    <button
+      (click)="viewLeaderboard()"
+      class="text-lg text-[rgb(var(--primary-rgb))] hover:underline"
+    >
+      View Leaderboard
+    </button>
+
+    <button
+      (click)="viewActivity()"
+      class="text-lg text-orange-400 hover:underline"
+    >
+      View Activity Feed
+    </button>
+  </div>
+</div>

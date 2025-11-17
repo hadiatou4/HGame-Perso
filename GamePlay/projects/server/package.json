@@ -1,0 +1,47 @@
+{
+    "name": "space-war-server",
+    "version": "1.0.0",
+    "description": "game server for multiplayer version of Spaceship Game",
+    "type": "module",
+    "scripts": {
+        "clean": "rimraf ./dist",
+        "build": "webpack --config webpack.config.cjs",
+        "build:dev": "npm run clean && npm run build",
+        "start": "npm run build && npm run open",
+        "start:dev": "npm run build && npm run open:dev",
+        "open": "cross-env HOST=0.0.0.0 npx phaser-game-server -s -c server.config.prod.json",
+        "open:dev": "cross-env HOST=0.0.0.0 npx phaser-game-server -s",
+        "test": ""
+    },
+    "keywords": [
+        "phaser",
+        "html game",
+        "typescript game",
+        "spaceship game"
+    ],
+    "author": "Hedera-Gaming Team",
+    "license": "MIT",
+    "dependencies": {
+        "canvas": "^3.2.0",
+        "datauri": "^4.1.0",
+        "dynamic-data-store": "^2.1.0",
+        "express": "^4.18.2",
+        "jsdom": "^27.1.0",
+        "phaser": "^3.90.0",
+        "phaser-game-server": "^1.2.0",
+        "phaser-game-server-engine": "^1.2.0",
+        "socket.io": "^4.8.1",
+        "space-war-shared": "^1.0.0"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.14",
+        "@types/jsdom": "^27.0.0",
+        "copy-webpack-plugin": "^11.0.0",
+        "rimraf": "^3.0.2",
+        "ts-loader": "^9.4.2",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.8.3",
+        "webpack": "^5.75.0",
+        "webpack-cli": "^5.0.1"
+    }
+}
