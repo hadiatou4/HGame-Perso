@@ -7,8 +7,7 @@
     "prestart": "node --loader ts-node/esm scripts/generate-env.mjs",
     "dev": "ng serve",
     "build": "ng build",
-    "preview": "ng serve --configuration=production",
-    "dev:all": "concurrently --names \"FrontEnd,GamePlay\" --prefix-colors \"yellow,cyan\" \"cd C:/Users/Hp/SpaceShip-War && npm run dev\" \"cd C:/Users/Hp/SpaceWar && npm run start:dev\""
+    "preview": "ng serve --configuration=production"
   },
   "dependencies": {
     "@angular/build": "^20.3.0",

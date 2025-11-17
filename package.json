@@ -1,0 +1,18 @@
+{
+  "name": "hgame",
+  "version": "1.0.0",
+  "description": "HGame - Frontend & Gameplay monorepo",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix FrontEnd",
+    "dev:gameplay": "npm run start:dev --prefix GamePlay",
+    "dev:all": "concurrently --names \"FrontEnd,GamePlay\" --prefix-colors \"yellow,cyan\" \"npm run dev:frontend\" \"npm run dev:gameplay\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

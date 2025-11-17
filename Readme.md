@@ -104,7 +104,7 @@ HGame/
 
 ---
 
-## 5. Dependency Installation
+## 5. Dependency Installation(`Execute these commands in this order.`)
 
 Open a terminal inside the root folder:
 
@@ -131,29 +131,28 @@ cd ..
 ```bash
 cd GamePlay
 npm install
+```
+
+### 5.4 Install shared dependencies
+
+```bash
+cd projects/shared
+npm install
 cd ..
 ```
 
-### 5.4 Install projects/client dependencies
+### 5.5 Install projects/client dependencies
 
 ```bash
-cd projects/client
+cd client
 npm install
-cd ../..
+cd ..
 ```
 
-### 5.5 Install server dependencies
+### 5.6 Install server dependencies
 
 ```bash
 cd server
-npm install
-cd ..
-```
-
-### 5.6 Install shared dependencies
-
-```bash
-cd shared
 npm install
 cd ..
 ```
@@ -169,7 +168,7 @@ Your monorepo is now fully installed.
 In the root `package.json`, the following script is defined:
 
 ```json
-"dev:all": "concurrently --names \"FrontEnd,GamePlay\" --prefix-colors \"yellow,cyan\" \"cd FrontEnd && npm run dev\" \"cd GamePlay && npm run start:dev\""
+  "dev:all": "concurrently --names \"FrontEnd,GamePlay\" --prefix-colors \"yellow,cyan\" \"npm run dev:frontend\" \"npm run dev:gameplay\""
 ```
 
 Run everything with:
