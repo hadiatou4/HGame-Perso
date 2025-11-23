@@ -10,7 +10,8 @@
     "create-topic": "ts-node src/create-topic.ts",
     "test-submit": "ts-node src/test-submit.ts",
     "subscribe": "ts-node src/subscribe-sessions.ts",
-    "read-history": "ts-node src/read-sessions.ts"
+    "read-history": "ts-node src/read-sessions.ts",
+    "messagequery": "ts-node src/messagequery.ts"
   },
   "keywords": [
     "hedera",

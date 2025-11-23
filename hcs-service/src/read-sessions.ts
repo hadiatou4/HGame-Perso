@@ -1,5 +1,9 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
 import { GameSession } from './submit-session';
+
+// Load environment variables from .env
+dotenv.config();
 
 /**
  * Mirror Node API response structure
@@ -77,12 +81,13 @@ export async function readSessions(options?: {
     }
 
     // Fetch messages from Mirror Node
-    let url = `${mirrorNodeUrl}/api/v1/topics/${topicId}/messages`;
+    let url: string | null = `${mirrorNodeUrl}/api/v1/topics/${topicId}/messages`;
     let hasMore = true;
     let fetchedCount = 0;
 
     while (hasMore && (!options?.limit || fetchedCount < options.limit)) {
-      const response = await axios.get<MirrorNodeResponse>(url, { params });
+      if (!url) break; // no further pages
+      const response: import('axios').AxiosResponse<MirrorNodeResponse> = await axios.get<MirrorNodeResponse>(url, { params });
       
       for (const msg of response.data.messages) {
         try {
@@ -239,7 +244,7 @@ if (require.main === module) {
         console.log(`   Kills: ${session.kills}`);
         console.log(`   Accuracy: ${session.accuracy.toFixed(1)}%`);
         console.log(`   Time Survived: ${session.timeSurvived}s`);
-        console.log(`   Game Mode: ${session.gameMode}`);
+        // console.log(`   Game Mode: ${session.gameMode}`);
         console.log(`   Timestamp: ${new Date(session.timestamp).toLocaleString()}`);
         console.log(`   Consensus Time: ${session.consensusTimestamp}`);
       }
@@ -267,5 +272,3 @@ if (require.main === module) {
     }
   })();
 }
-
-export { ParsedGameSession, MirrorNodeMessage, MirrorNodeResponse };

@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { submitSession, GameSession, validateSessionData } from './submit-session';
+import { submitSession, GameSession, validateSessionData, generateNonce, generateSessionId } from './submit-session';
 import { readSessions, getPlayerSessions, getLatestSessions, getLeaderboard } from './read-sessions';
 import { HederaClient } from './hedera-client';
 
@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:4200'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, Postman, curl)
@@ -61,6 +61,11 @@ app.get('/health', (req: Request, res: Response) => {
 app.post('/api/sessions', async (req: Request, res: Response) => {
   try {
     const sessionData = req.body as GameSession;
+
+    // Auto-fill server-only fields if missing so clients can send a minimal payload
+    if (!sessionData.sessionId) sessionData.sessionId = generateSessionId();
+    if (!sessionData.nonce) sessionData.nonce = generateNonce();
+    if (!sessionData.gameMode) sessionData.gameMode = 'singleplayer';
 
     // Validate session data
     const validation = validateSessionData(sessionData);

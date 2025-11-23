@@ -45,21 +45,21 @@ export interface HCSSubmitResult {
  * @returns Promise with submission result
  */
 export async function submitSession(sessionData: GameSession): Promise<HCSSubmitResult> {
-  // Validate required fields
-  const requiredFields: (keyof GameSession)[] = [
-    'player', 'sessionId', 'nonce', 'score', 'kills', 
-    'accuracy', 'timeSurvived', 'gameMode', 'timestamp'
-  ];
+  // Basic validation of required runtime fields (core stats)
+  // Detailed validation is also available via `validateSessionData` used by the API.
+  if (!sessionData.player) throw new Error('Missing required field: player');
+  if (sessionData.score === undefined) throw new Error('Missing required field: score');
+  if (sessionData.kills === undefined) throw new Error('Missing required field: kills');
+  if (sessionData.accuracy === undefined) throw new Error('Missing required field: accuracy');
+  if (sessionData.timeSurvived === undefined) throw new Error('Missing required field: timeSurvived');
+  if (sessionData.timestamp === undefined) throw new Error('Missing required field: timestamp');
 
-  for (const field of requiredFields) {
-    if (sessionData[field] === undefined || sessionData[field] === null) {
-      throw new Error(`Missing required field: ${field}`);
-    }
-  }
-
-  // Validate player address format (Hedera account ID)
-  if (!sessionData.player.match(/^0\.0\.\d+$/)) {
-    throw new Error(`Invalid player address format. Expected: 0.0.XXXXXX, got: ${sessionData.player}`);
+  // Validate player address format (Hedera account ID OR EVM address)
+  const isHederaFormat = sessionData.player.match(/^0\.0\.\d+$/);
+  const isEvmFormat = sessionData.player.match(/^0x[a-fA-F0-9]{40}$/);
+  
+  if (!isHederaFormat && !isEvmFormat) {
+    throw new Error(`Invalid player address format. Expected: 0.0.XXXXXX or 0x... EVM address, got: ${sessionData.player}`);
   }
 
   // Validate topic ID is configured
@@ -74,8 +74,21 @@ export async function submitSession(sessionData: GameSession): Promise<HCSSubmit
   const client = HederaClient.getClient();
 
   try {
-    // Convert session data to JSON string
-    const messageJson = JSON.stringify(sessionData);
+    // Build a minimal message payload for HCS (exclude server-only fields like sessionId/nonce)
+    const messagePayload: Partial<GameSession> = {
+      player: sessionData.player,
+      score: sessionData.score,
+      kills: sessionData.kills,
+      accuracy: sessionData.accuracy,
+      timeSurvived: sessionData.timeSurvived,
+      timestamp: sessionData.timestamp
+    };
+
+    // Include optional fields if present
+    if (sessionData.shipType) messagePayload.shipType = sessionData.shipType;
+    if (sessionData.achievements) messagePayload.achievements = sessionData.achievements;
+
+    const messageJson = JSON.stringify(messagePayload);
     
     console.log('📤 Submitting session to HCS...');
     console.log(`   Player: ${sessionData.player}`);
@@ -159,13 +172,12 @@ export function validateSessionData(data: Partial<GameSession>): { valid: boolea
 
   // Check required fields
   if (!data.player) errors.push('player is required');
-  if (!data.sessionId) errors.push('sessionId is required');
-  if (!data.nonce) errors.push('nonce is required');
+  // sessionId and nonce are generated server-side if not provided, so they are optional here
   if (data.score === undefined) errors.push('score is required');
   if (data.kills === undefined) errors.push('kills is required');
   if (data.accuracy === undefined) errors.push('accuracy is required');
   if (data.timeSurvived === undefined) errors.push('timeSurvived is required');
-  if (!data.gameMode) errors.push('gameMode is required');
+  // gameMode is optional and will default to 'singleplayer' if not provided
   if (!data.timestamp) errors.push('timestamp is required');
 
   // Validate ranges
@@ -185,9 +197,9 @@ export function validateSessionData(data: Partial<GameSession>): { valid: boolea
     errors.push('timeSurvived must be non-negative');
   }
 
-  // Validate player address format
-  if (data.player && !data.player.match(/^0\.0\.\d+$/)) {
-    errors.push('player must be a valid Hedera account ID (format: 0.0.XXXXXX)');
+  // Validate player address format (both Hedera and EVM formats accepted)
+  if (data.player && !data.player.match(/^0\.0\.\d+$/) && !data.player.match(/^0x[a-fA-F0-9]{40}$/)) {
+    errors.push('player must be a valid Hedera account ID (0.0.XXXXXX) or EVM address (0x...)');
   }
 
   return {
@@ -196,4 +208,5 @@ export function validateSessionData(data: Partial<GameSession>): { valid: boolea
   };
 }
 
-export { GameSession, HCSSubmitResult };
+// Interfaces `GameSession` and `HCSSubmitResult` are exported where declared above.
+// No trailing named export needed — removed to avoid TS2484 duplicate export error.
