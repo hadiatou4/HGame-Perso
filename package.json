@@ -9,12 +9,15 @@
     "dev:all": "concurrently --names \"FrontEnd,GamePlay\" --prefix-colors \"yellow,cyan\" \"npm run dev:frontend\" \"npm run dev:gameplay\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/node": "^24.10.1",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0"
   }
 }
-
-

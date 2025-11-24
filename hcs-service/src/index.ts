@@ -1,25 +1,35 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { submitSession, GameSession, validateSessionData, generateNonce, generateSessionId } from './submit-session';
+import { submitSession, GameSession, validateSessionData } from './submit-session';
 import { readSessions, getPlayerSessions, getLatestSessions, getLeaderboard } from './read-sessions';
 import { HederaClient } from './hedera-client';
+import ContractClient from './contract-client';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Initialiser le client du contrat (si configuré)
+let contractClient: ContractClient | null = null;
+try {
+  if (process.env.LEADERBOARD_CONTRACT_ADDRESS) {
+    contractClient = new ContractClient();
+    console.log('✅ Contract client initialized');
+  }
+} catch (error) {
+  console.warn('⚠️  Contract client not initialized:', error);
+}
+
 // Middleware
 app.use(express.json());
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:4200'];
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -47,28 +57,21 @@ app.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     network: HederaClient.getNetwork(),
     topicId: process.env.GAME_SESSION_TOPIC_ID || 'NOT_SET',
+    contractAddress: process.env.LEADERBOARD_CONTRACT_ADDRESS || 'NOT_SET',
+    contractAvailable: !!contractClient,
     errors: validation.errors
   });
 });
 
 // ========================================
-// SESSION ENDPOINTS
+// SESSION ENDPOINTS (HCS)
 // ========================================
 
-/**
- * POST /api/sessions - Submit a new game session
- */
 app.post('/api/sessions', async (req: Request, res: Response) => {
   try {
     const sessionData = req.body as GameSession;
-
-    // Auto-fill server-only fields if missing so clients can send a minimal payload
-    if (!sessionData.sessionId) sessionData.sessionId = generateSessionId();
-    if (!sessionData.nonce) sessionData.nonce = generateNonce();
-    if (!sessionData.gameMode) sessionData.gameMode = 'singleplayer';
-
-    // Validate session data
     const validation = validateSessionData(sessionData);
+    
     if (!validation.valid) {
       return res.status(400).json({
         success: false,
@@ -77,7 +80,6 @@ app.post('/api/sessions', async (req: Request, res: Response) => {
       });
     }
 
-    // Submit to HCS
     const result = await submitSession(sessionData);
 
     if (result.success) {
@@ -97,7 +99,6 @@ app.post('/api/sessions', async (req: Request, res: Response) => {
         error: result.error || 'Failed to submit session'
       });
     }
-
   } catch (error) {
     console.error('Error submitting session:', error);
     res.status(500).json({
@@ -107,17 +108,10 @@ app.post('/api/sessions', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/sessions - Get all sessions (with optional filters)
- * Query params:
- *   - player: Filter by player address
- *   - limit: Maximum number of sessions to return (default: 20)
- */
 app.get('/api/sessions', async (req: Request, res: Response) => {
   try {
     const player = req.query.player as string | undefined;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
-
     const sessions = await readSessions({ player, limit });
 
     res.json({
@@ -125,7 +119,6 @@ app.get('/api/sessions', async (req: Request, res: Response) => {
       count: sessions.length,
       data: sessions
     });
-
   } catch (error) {
     console.error('Error reading sessions:', error);
     res.status(500).json({
@@ -135,11 +128,6 @@ app.get('/api/sessions', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/sessions/latest - Get latest sessions
- * Query params:
- *   - limit: Maximum number of sessions (default: 10)
- */
 app.get('/api/sessions/latest', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
@@ -150,7 +138,6 @@ app.get('/api/sessions/latest', async (req: Request, res: Response) => {
       count: sessions.length,
       data: sessions
     });
-
   } catch (error) {
     console.error('Error reading latest sessions:', error);
     res.status(500).json({
@@ -160,21 +147,15 @@ app.get('/api/sessions/latest', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/sessions/player/:address - Get sessions for a specific player
- * Query params:
- *   - limit: Maximum number of sessions (default: 20)
- */
 app.get('/api/sessions/player/:address', async (req: Request, res: Response) => {
   try {
     const playerAddress = req.params.address;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
 
-    // Validate Hedera address format
-    if (!playerAddress.match(/^0\.0\.\d+$/)) {
+    if (!playerAddress.match(/^0\.0\.\d+$/) && !playerAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid player address format. Expected: 0.0.XXXXXX'
+        error: 'Invalid player address format'
       });
     }
 
@@ -186,7 +167,6 @@ app.get('/api/sessions/player/:address', async (req: Request, res: Response) => 
       count: sessions.length,
       data: sessions
     });
-
   } catch (error) {
     console.error('Error reading player sessions:', error);
     res.status(500).json({
@@ -196,10 +176,12 @@ app.get('/api/sessions/player/:address', async (req: Request, res: Response) => 
   }
 });
 
+// ========================================
+// LEADERBOARD ENDPOINTS
+// ========================================
+
 /**
- * GET /api/leaderboard - Get leaderboard
- * Query params:
- *   - limit: Number of top players (default: 10)
+ * GET /api/leaderboard - Leaderboard depuis HCS (par défaut)
  */
 app.get('/api/leaderboard', async (req: Request, res: Response) => {
   try {
@@ -208,12 +190,100 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      source: 'hcs',
       count: leaderboard.length,
       data: leaderboard
     });
-
   } catch (error) {
     console.error('Error generating leaderboard:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/leaderboard/contract - Leaderboard depuis le smart contract
+ */
+app.get('/api/leaderboard/contract', async (req: Request, res: Response) => {
+  if (!contractClient) {
+    return res.status(503).json({
+      success: false,
+      error: 'Contract client not available. Check LEADERBOARD_CONTRACT_ADDRESS in .env'
+    });
+  }
+
+  try {
+    const top10 = await contractClient.getTop10();
+
+    // Formater les données pour correspondre à l'interface HCS
+    const formattedLeaderboard = top10
+      .filter(player => player.exists) // Filtrer les slots vides
+      .map(player => ({
+        player: player.playerAddress,
+        highestScore: Number(player.highestScore),
+        totalKills: Number(player.totalKills),
+        totalSessions: Number(player.totalSessions),
+        averageAccuracy: 0, // Pas stocké dans le contrat pour l'instant
+        lastUpdated: Number(player.lastUpdated)
+      }));
+
+    res.json({
+      success: true,
+      source: 'contract',
+      contractAddress: contractClient.getContractAddress(),
+      count: formattedLeaderboard.length,
+      data: formattedLeaderboard
+    });
+  } catch (error) {
+    console.error('Error reading contract leaderboard:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/leaderboard/contract/player/:address - Stats d'un joueur depuis le contrat
+ */
+app.get('/api/leaderboard/contract/player/:address', async (req: Request, res: Response) => {
+  if (!contractClient) {
+    return res.status(503).json({
+      success: false,
+      error: 'Contract client not available'
+    });
+  }
+
+  try {
+    const playerAddress = req.params.address;
+    
+    const stats = await contractClient.getPlayerStats(playerAddress);
+    const rank = await contractClient.getPlayerRank(playerAddress);
+
+    if (!stats) {
+      return res.json({
+        success: true,
+        found: false,
+        player: playerAddress
+      });
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      data: {
+        player: stats.playerAddress,
+        rank: rank,
+        highestScore: Number(stats.highestScore),
+        totalKills: Number(stats.totalKills),
+        totalSessions: Number(stats.totalSessions),
+        lastUpdated: Number(stats.lastUpdated)
+      }
+    });
+  } catch (error) {
+    console.error('Error reading player stats from contract:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -225,7 +295,6 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
 // ERROR HANDLING
 // ========================================
 
-// 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -233,7 +302,6 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
@@ -248,7 +316,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 // ========================================
 
 function startServer() {
-  // Validate environment before starting
   const validation = HederaClient.validateEnv();
   
   if (!validation.valid) {
@@ -265,6 +332,7 @@ function startServer() {
     console.log(`📡 Server running on: http://localhost:${PORT}`);
     console.log(`🌐 Network: ${HederaClient.getNetwork()}`);
     console.log(`📋 Topic ID: ${process.env.GAME_SESSION_TOPIC_ID}`);
+    console.log(`📝 Contract: ${process.env.LEADERBOARD_CONTRACT_ADDRESS || 'Not configured'}`);
     console.log(`👤 Operator: ${HederaClient.getOperatorId()}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('📚 Available endpoints:');
@@ -273,7 +341,9 @@ function startServer() {
     console.log('   GET  /api/sessions');
     console.log('   GET  /api/sessions/latest');
     console.log('   GET  /api/sessions/player/:address');
-    console.log('   GET  /api/leaderboard');
+    console.log('   GET  /api/leaderboard (from HCS)');
+    console.log('   GET  /api/leaderboard/contract (from Smart Contract)');
+    console.log('   GET  /api/leaderboard/contract/player/:address');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   });
 }

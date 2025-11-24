@@ -1,0 +1,8 @@
+{
+  "network": "hederaTestnet",
+  "contractAddress": "0x8Bc92FB12455Df83c3fd93B6930D6e6a2bE50fa3",
+  "gameServer": "0x781435bc27070aa65967a4A9a95f198F8978B4cB",
+  "owner": "0x781435bc27070aa65967a4A9a95f198F8978B4cB",
+  "deployedAt": "2025-11-24T00:17:18.517Z",
+  "blockNumber": 27948455
+}

@@ -15,6 +15,16 @@ export class LeaderboardComponent {
   walletService = inject(WalletService);
 
   leaderboard = this.leaderboardService.leaderboardData;
-  // The username is now available in the wallet state
+  isLoading = this.leaderboardService.isLoading;
+  error = this.leaderboardService.error;
+
+  // Username du joueur connecté (pour highlight)
   currentPlayerUsername = this.walletService.walletState().username;
+
+  /**
+   * Rafraîchir manuellement le leaderboard
+   */
+  async refresh(): Promise<void> {
+    await this.leaderboardService.refresh();
+  }
 }

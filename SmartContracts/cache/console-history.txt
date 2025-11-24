@@ -1,0 +1,6 @@
+w.getAddress()
+w = new ethers.Wallet("0x55b42e26b76c02758da6bf86748d75087c3b8204c0de44a900595361df83dce0")
+ethers.Wallet.fromPrivateKey("0x55b42e26b76c02758da6bf86748d75087c3b8204c0de44a900595361df83dce0").address.address
+ethers.Wallet.fromPrivateKey("0x55b42e26b76c02758da6bf86748d75087c3b8204c0de44a900595361df83dce0").address.addr
+ethers.Wallet.fromPrivateKey("0x55b42e26b76c02758d
+ethers.Wallet.fromPrivateKey("TA_CLE_PRIVEE")ethers.Wallet.fromPrivateKey("0x55b42e26b76c02758da6bf86748d75087c3b8204c0de44a900595361df83dce0").address.addr

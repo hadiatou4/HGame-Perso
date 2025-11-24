@@ -1,0 +1,110 @@
+{
+  "name": "hedera-gaming-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Hedera Gaming platform - GameFi ecosystem with NFT achievements",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "clean": "hardhat clean",
+    "test": "hardhat test",
+    "test:coverage": "hardhat coverage",
+    "test:gas": "REPORT_GAS=true hardhat test",
+    "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network hederaTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network hederaMainnet",
+    "deploy:previewnet": "hardhat run scripts/deploy.js --network hederaPreviewnet",
+    "verify:testnet": "hardhat verify --network hederaTestnet",
+    "verify:mainnet": "hardhat verify --network hederaMainnet",
+    "node": "hardhat node",
+    "node:fork": "hardhat node --fork",
+    "console": "hardhat console",
+    "size": "hardhat size-contracts",
+    "flatten": "hardhat flatten",
+    "format": "prettier --write 'contracts/**/*.sol' 'test/**/*.js' 'scripts/**/*.js'",
+    "lint": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
+    "slither": "slither . --config-file slither.config.json",
+    "mythril": "myth analyze contracts/*.sol",
+    "docs": "hardhat dodoc",
+    "generate:angular:services": "node ./scripts/generate-angular-services.js ./typechain-types/contracts ../FrontEnd/src/hedera",
+    "generate:angular:components": "node ./scripts/generate-angular-components.js ../FrontEnd/src/hedera"
+  },
+  "keywords": [
+    "hedera",
+    "hashgraph",
+    "smart-contracts",
+    "solidity",
+    "gamefi",
+    "nft",
+    "blockchain",
+    "web3",
+    "erc721",
+    "marketplace",
+    "achievements"
+  ],
+  "author": "Hedera Gaming Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.3",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.3",
+    "@nomiclabs/hardhat-solhint": "^3.0.1",
+    "@openzeppelin/hardhat-upgrades": "^3.0.2",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.6",
+    "chai": "^4.3.10",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.2",
+    "hardhat": "^2.19.4",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.9",
+    "prettier": "^3.1.1",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^4.0.0",
+    "solidity-coverage": "^0.8.5",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/contracts-upgradeable": "^5.0.1"
+  },
+  "optionalDependencies": {
+    "@hashgraph/sdk": "^2.47.0",
+    "@hashgraph/hardhat-hethers": "^1.0.4",
+    "hardhat-dodoc": "^1.3.0",
+    "slither-analyzer": "^0.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hedera-gaming/smart-contracts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hedera-gaming/smart-contracts/issues"
+  },
+  "homepage": "https://hedera-gaming.com",
+  "directories": {
+    "test": "test"
+  },
+  "config": {
+    "solc": {
+      "version": "0.8.20",
+      "settings": {
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        }
+      }
+    }
+  }
+}

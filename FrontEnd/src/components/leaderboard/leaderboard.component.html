@@ -1,43 +1,112 @@
 <div class="container mx-auto max-w-4xl">
   <div class="text-center mb-8">
     <h1 class="text-4xl font-orbitron font-bold neon-text-primary">Leaderboard</h1>
-    <p class="text-neutral-400 mt-2">Top pilots in the galaxy.</p>
+    <p class="text-neutral-400 mt-2">Top pilots in the galaxy • Powered by Hedera HCS</p>
+    
+    <!-- Refresh Button -->
+    <button
+      *ngIf="!isLoading()"
+      (click)="refresh()"
+      class="mt-4 px-4 py-2 bg-[rgb(var(--primary-rgb))] hover:bg-[rgb(var(--primary-rgb))]/80 text-white rounded-lg transition-colors"
+    >
+      🔄 Refresh
+    </button>
   </div>
-  
-  <div class="glass-effect rounded-lg overflow-hidden">
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading() && leaderboard().length === 0" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[rgb(var(--primary-rgb))] mb-4"></div>
+    <p class="text-neutral-400">Loading leaderboard from Hedera...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error()" class="glass-effect rounded-lg p-4 mb-8 border-2 border-red-500">
+    <p class="text-red-400 text-center">❌ {{ error() }}</p>
+  </div>
+
+  <!-- Leaderboard Table -->
+  <div *ngIf="!isLoading() || leaderboard().length > 0" class="glass-effect rounded-lg overflow-hidden">
     <table class="w-full text-left">
       <thead class="bg-black/30">
         <tr>
           <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))]">Rank</th>
           <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))]">Player</th>
-          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Score</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Best Score</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Kills</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Accuracy</th>
+          <th class="p-4 font-orbitron text-[rgb(var(--primary-rgb))] text-right">Sessions</th>
         </tr>
       </thead>
       <tbody>
         @for(entry of leaderboard(); track entry.rank) {
           <tr class="border-b border-[rgba(var(--primary-rgb),0.1)] hover:bg-[rgba(var(--primary-rgb),0.05)] transition-colors"
-              [class.bg-[rgba(var(--primary-rgb),0.1)]]="entry.player === currentPlayerUsername">
+              [class.bg-[rgba(var(--accent-rgb),0.1)]]="entry.player === currentPlayerUsername">
+            
+            <!-- Rank -->
             <td class="p-4 text-xl font-bold">
               @if (entry.rank <= 3) {
                 <span [class.text-yellow-400]="entry.rank === 1"
                       [class.text-neutral-300]="entry.rank === 2"
-                      [class.text-orange-400]="entry.rank === 3">{{ entry.rank }}</span>
+                      [class.text-orange-400]="entry.rank === 3">
+                  @if (entry.rank === 1) { 🥇 }
+                  @if (entry.rank === 2) { 🥈 }
+                  @if (entry.rank === 3) { 🥉 }
+                  {{ entry.rank }}
+                </span>
               } @else {
                 <span>{{ entry.rank }}</span>
               }
             </td>
+            
+            <!-- Player -->
             <td class="p-4 flex items-center space-x-3">
               <span class="text-2xl">{{ entry.avatar }}</span>
               <span class="font-mono">{{ entry.player }}</span>
+              @if (entry.player === currentPlayerUsername) {
+                <span class="text-xs text-[rgb(var(--accent-rgb))]">👤 YOU</span>
+              }
             </td>
-            <td class="p-4 font-mono text-xl text-right text-orange-300">{{ entry.score.toLocaleString() }}</td>
+            
+            <!-- Best Score -->
+            <td class="p-4 font-mono text-xl text-right text-orange-300">
+              {{ entry.score.toLocaleString() }}
+            </td>
+            
+            <!-- Total Kills -->
+            <td class="p-4 font-mono text-right text-red-400">
+              {{ entry.totalKills || 0 }}
+            </td>
+            
+            <!-- Avg Accuracy -->
+            <td class="p-4 font-mono text-right text-green-400">
+              {{ (entry.averageAccuracy || 0) | number:'1.0-0' }}%
+            </td>
+            
+            <!-- Total Sessions -->
+            <td class="p-4 font-mono text-right text-blue-400">
+              {{ entry.totalSessions || 0 }}
+            </td>
+            
           </tr>
         } @empty {
-            <tr>
-                <td colspan="3" class="text-center p-8 text-neutral-500">Leaderboard data is loading or unavailable...</td>
-            </tr>
+          <tr>
+            <td colspan="6" class="text-center p-8 text-neutral-500">
+              🎮 No players yet. Be the first to play!
+            </td>
+          </tr>
         }
       </tbody>
     </table>
+  </div>
+
+  <!-- Footer Info -->
+  <div class="mt-6 text-center text-sm text-neutral-500">
+    <p>
+        Data stored on-chain via 
+      <a href="https://hashscan.io/testnet/topic/0.0.7306772" target="_blank" class="text-[rgb(var(--accent-rgb))] hover:underline">
+        Hedera HCS
+      </a>
+    </p>
+    <p class="mt-1">Auto-refreshes every 30 seconds</p>
   </div>
 </div>
