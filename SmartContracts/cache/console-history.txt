@@ -1,3 +1,82 @@
+await marketplace.connect(buyer).buyNFT(2, { value: listing.price, gasLimit: 300000 });
+console.log('Buying with EXACT price from contract...');
+// ACHETER avec le prix EXACT du contrat
+console.log('✅ Funded');
+await seller.sendTransaction({ to: buyer.address, value: ethers.parseEther('10') });
+const [seller] = await ethers.getSigners();
+// Envoyer des HBAR
+console.log('Buyer:', buyer.address);
+const buyer = ethers.Wallet.createRandom().connect(ethers.provider);
+// Créer un buyer
+console.log('Price (HBAR):', ethers.formatEther(listing.price));
+console.log('Price (Wei):', listing.price.toString());
+const listing = await marketplace.getListing(2);
+// Récupérer le listing
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+const marketplace = await ethers.getContractAt('Marketplace', '0x7777e9978CDc0A8e52DEf826E219aa4A97484F8a');
+const approved = await nft.getApproved(1);
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+const approved = await nft.getApproved(1);
+console.const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+const approved = await nft.getApproved(1);
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+  console.log('✅ Re-approved!');
+  await nft.approve(marketplace.target, 1);
+  console.log('❌ Not approved! Re-approving...');
+if (approved.toLowerCase() !== marketplace.target.toLowerCase()) {
+// Si pas approuvé, ré-approuver
+console.log('Match:', approved.toLowerCase() === marketplace.target.toLowerCase());
+console.log('Marketplace:', marketplace.target);
+const approved console.log('Approved to:', approved);
+// Vérifier l'approbation
+const marketplace = await ethers.getContractAt('Marketplace', '0xb05FBb3d770d16Bd16d4A2bA65656BC5E1Bda5CC');
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+  console.log('✅ Re-approved!');
+  await nft.approve(marketplace.target, 1);
+  console.log('❌ Not approved! Re-approving...');
+if (approved.toLowerCase() !== marketplace.target.toLowerCase()) {
+// Si pas approuvé, ré-approuver
+console.log('Match:', approved.toLowerCase() === marketplace.target.toLowerCase());
+console.log('Marketplace:', marketplace.target);
+console.log('Approved to:', approved);
+const approved = await nft.getApproved(1);
+// Vérifier l'approbation
+const marketplace = await ethers.getContractAt('Mar
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+console.log('✅ SUCCESS!');
+});
+  gasLimit: 300000 
+  value: listing.price,
+await marketplace.connect(buyer).buyNFT(0, { 
+// ACHETER
+console.log('Buyer:', buyer.address);
+console.log('Seller:', listing.seller);
+console.log('Active:', listing.active);
+console.log('Price:', ethers.formatEther(listing.price));
+const listing = await marketplace.getListing(0);
+A2bA65656BC5E1Bda5CC');
+const marketplace = await ethers.getContractAt('Marketplace', '0xb05FBb3d770d16Bd16d4
+constconst buyer = new ethers.Wallet(buyerKey, ethers.provider);
+// Créer un wallet DIFFÉRENT (pas le seller)
+  console.log(`  - NFT #${l.tokenId}: ${ethers.formatEther(l.price)} HBAR`);
+listings.forEach(l => {
+console.log('\n📋 Active listings:', listings.length);
+const listings = await marketplace.getActiveListings();
+// Vérifier
+console.log('✅ NFT #2 listed for 5 HBAR');
+await marketplace.listNFT(nft.target, 2, ethers.parseEther('5'));
+await nft.approve(marketplace.target, 2);
+// Lister NFT #2 pour 5 HBAR (encore moins cher !)
+console.log('✅ NFT #1 listed for 10 HBAR');
+await marketplace.listNFT(nft.target, 1, ethers.parseEther('10'));
+await nft.approve(marketplace.target, 1);
+// Lister NFT #1 pour 10 HBAR (prix sympa !)
+console.log('Listing NFTs with affordable prices...');
+const marketplace = await ethers.getContractAt('Marketplace', '0xb05FBb3d770d16Bd16d4A2bA65656BC5E1Bda5CC');
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
+// Lister NFT #1 pour 100 HBAR
+const marketplace = await ethers.getContractAt('Marketplace', '0xb05FBb3d770d16Bd16d4A2bA65656BC5E1Bda5CC');
+const nft = await ethers.getContractAt('SimpleNFT', '0x2Ad4Ea9E243e9544Eea109C9C5b71fB6Ce095A57');
 console.log('✅ SUCCESS!');
 await tx.wait();
 console.log('TX sent:', tx.hash);

@@ -62,12 +62,15 @@ export interface MarketplaceInterface extends Interface {
       | "feeRecipient"
       | "getActiveListings"
       | "getListing"
+      | "getPendingWithdrawal"
       | "listNFT"
       | "listings"
       | "owner"
+      | "pendingWithdrawals"
       | "setFeePercent"
       | "setFeeRecipient"
       | "totalListings"
+      | "withdraw"
   ): FunctionFragment;
 
   getEvent(
@@ -76,6 +79,8 @@ export interface MarketplaceInterface extends Interface {
       | "ListingCancelled"
       | "NFTListed"
       | "NFTPurchased"
+      | "WithdrawalReady"
+      | "Withdrawn"
   ): EventFragment;
 
   encodeFunctionData(
@@ -103,6 +108,10 @@ export interface MarketplaceInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getPendingWithdrawal",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "listNFT",
     values: [AddressLike, BigNumberish, BigNumberish]
   ): string;
@@ -111,6 +120,10 @@ export interface MarketplaceInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "pendingWithdrawals",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "setFeePercent",
     values: [BigNumberish]
@@ -123,6 +136,7 @@ export interface MarketplaceInterface extends Interface {
     functionFragment: "totalListings",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "withdraw", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "buyNFT", data: BytesLike): Result;
   decodeFunctionResult(
@@ -139,9 +153,17 @@ export interface MarketplaceInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getListing", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getPendingWithdrawal",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "listNFT", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "listings", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "pendingWithdrawals",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "setFeePercent",
     data: BytesLike
@@ -154,6 +176,7 @@ export interface MarketplaceInterface extends Interface {
     functionFragment: "totalListings",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 }
 
 export namespace FeeUpdatedEvent {
@@ -253,6 +276,32 @@ export namespace NFTPurchasedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace WithdrawalReadyEvent {
+  export type InputTuple = [recipient: AddressLike, amount: BigNumberish];
+  export type OutputTuple = [recipient: string, amount: bigint];
+  export interface OutputObject {
+    recipient: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WithdrawnEvent {
+  export type InputTuple = [recipient: AddressLike, amount: BigNumberish];
+  export type OutputTuple = [recipient: string, amount: bigint];
+  export interface OutputObject {
+    recipient: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface Marketplace extends BaseContract {
   connect(runner?: ContractRunner | null): Marketplace;
   waitForDeployment(): Promise<this>;
@@ -316,16 +365,13 @@ export interface Marketplace extends BaseContract {
 
   getListing: TypedContractMethod<
     [listingId: BigNumberish],
-    [
-      [string, bigint, string, bigint, boolean, bigint] & {
-        nftContract: string;
-        tokenId: bigint;
-        seller: string;
-        price: bigint;
-        active: boolean;
-        listedAt: bigint;
-      }
-    ],
+    [Marketplace.ListingStructOutput],
+    "view"
+  >;
+
+  getPendingWithdrawal: TypedContractMethod<
+    [account: AddressLike],
+    [bigint],
     "view"
   >;
 
@@ -353,6 +399,12 @@ export interface Marketplace extends BaseContract {
 
   owner: TypedContractMethod<[], [string], "view">;
 
+  pendingWithdrawals: TypedContractMethod<
+    [arg0: AddressLike],
+    [bigint],
+    "view"
+  >;
+
   setFeePercent: TypedContractMethod<
     [newFeePercent: BigNumberish],
     [void],
@@ -366,6 +418,8 @@ export interface Marketplace extends BaseContract {
   >;
 
   totalListings: TypedContractMethod<[], [bigint], "view">;
+
+  withdraw: TypedContractMethod<[], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -390,18 +444,12 @@ export interface Marketplace extends BaseContract {
     nameOrSignature: "getListing"
   ): TypedContractMethod<
     [listingId: BigNumberish],
-    [
-      [string, bigint, string, bigint, boolean, bigint] & {
-        nftContract: string;
-        tokenId: bigint;
-        seller: string;
-        price: bigint;
-        active: boolean;
-        listedAt: bigint;
-      }
-    ],
+    [Marketplace.ListingStructOutput],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "getPendingWithdrawal"
+  ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "listNFT"
   ): TypedContractMethod<
@@ -430,6 +478,9 @@ export interface Marketplace extends BaseContract {
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "pendingWithdrawals"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  getFunction(
     nameOrSignature: "setFeePercent"
   ): TypedContractMethod<[newFeePercent: BigNumberish], [void], "nonpayable">;
   getFunction(
@@ -438,6 +489,9 @@ export interface Marketplace extends BaseContract {
   getFunction(
     nameOrSignature: "totalListings"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "withdraw"
+  ): TypedContractMethod<[], [void], "nonpayable">;
 
   getEvent(
     key: "FeeUpdated"
@@ -466,6 +520,20 @@ export interface Marketplace extends BaseContract {
     NFTPurchasedEvent.InputTuple,
     NFTPurchasedEvent.OutputTuple,
     NFTPurchasedEvent.OutputObject
+  >;
+  getEvent(
+    key: "WithdrawalReady"
+  ): TypedContractEvent<
+    WithdrawalReadyEvent.InputTuple,
+    WithdrawalReadyEvent.OutputTuple,
+    WithdrawalReadyEvent.OutputObject
+  >;
+  getEvent(
+    key: "Withdrawn"
+  ): TypedContractEvent<
+    WithdrawnEvent.InputTuple,
+    WithdrawnEvent.OutputTuple,
+    WithdrawnEvent.OutputObject
   >;
 
   filters: {
@@ -511,6 +579,28 @@ export interface Marketplace extends BaseContract {
       NFTPurchasedEvent.InputTuple,
       NFTPurchasedEvent.OutputTuple,
       NFTPurchasedEvent.OutputObject
+    >;
+
+    "WithdrawalReady(address,uint256)": TypedContractEvent<
+      WithdrawalReadyEvent.InputTuple,
+      WithdrawalReadyEvent.OutputTuple,
+      WithdrawalReadyEvent.OutputObject
+    >;
+    WithdrawalReady: TypedContractEvent<
+      WithdrawalReadyEvent.InputTuple,
+      WithdrawalReadyEvent.OutputTuple,
+      WithdrawalReadyEvent.OutputObject
+    >;
+
+    "Withdrawn(address,uint256)": TypedContractEvent<
+      WithdrawnEvent.InputTuple,
+      WithdrawnEvent.OutputTuple,
+      WithdrawnEvent.OutputObject
+    >;
+    Withdrawn: TypedContractEvent<
+      WithdrawnEvent.InputTuple,
+      WithdrawnEvent.OutputTuple,
+      WithdrawnEvent.OutputObject
     >;
   };
 }

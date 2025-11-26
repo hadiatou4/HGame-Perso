@@ -4,7 +4,7 @@ import { Listing, NFT } from '../models/marketplace.model';
 import { WalletService } from './wallet.service';
 import { firstValueFrom } from 'rxjs';
 import { getWalletClient, getAccount } from '@wagmi/core';
-import { parseEther, parseUnits, encodeFunctionData } from 'viem';
+import { parseUnits, encodeFunctionData } from 'viem';
 
 interface MarketplaceListingResponse {
   success: boolean;
@@ -58,13 +58,16 @@ export class MarketplaceService {
   private walletService = inject(WalletService);
   
   private readonly API_URL = 'http://localhost:3001';
-  private readonly MARKETPLACE_ADDRESS = '0xAD40512Fe9e0b1198b60d38d85eAf04dBeaa41Ba' as `0x${string}`;
+  private readonly MARKETPLACE_ADDRESS = '0x7777e9978CDc0A8e52DEf826E219aa4A97484F8a' as `0x${string}`;
 
   private readonly _listings = signal<Listing[]>([]);
   public readonly listings = this._listings.asReadonly();
   
   private readonly _isLoading = signal(true);
   public readonly isLoading = this._isLoading.asReadonly();
+  
+  private readonly _error = signal<string | null>(null);
+  public readonly error = this._error.asReadonly();
 
   constructor() {
     this.fetchListings();
@@ -98,9 +101,8 @@ export class MarketplaceService {
             listingId: item.listingId.toString(),
             tokenId: item.tokenId.toString(),
             seller: item.seller,
-            // Support ancien ET nouveau format
-            price: item.priceFormatted || item.price, // Affichage
-            priceWei: item.price.length > 18 ? item.price : undefined, // Wei si > 18 chars
+            price: item.priceFormatted || item.price, // Affichage en HBAR
+            priceWei: item.price, // Prix en Wei (string, 18 décimales)
             active: item.active,
             listedAt: item.listedAt * 1000,
             nft: nft
@@ -144,55 +146,58 @@ export class MarketplaceService {
   }
   
   async buyNFT(listing: Listing): Promise<boolean> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
     try {
       console.log(`💳 Purchasing NFT from listing ${listing.listingId}...`);
-      
+
+      if (!listing || !listing.active) {
+        throw new Error('This NFT is no longer available');
+      }
+
+      // 1) Vérifier wallet connecté
       const walletState = this.walletService.walletState();
-      if (walletState.status !== 'connected') {
+      if (walletState.status !== 'connected' || !walletState.address) {
         alert('Please connect your wallet first');
-        this.walletService.openConnectModal();
+        this.walletService.openConnectModal?.();
         return false;
       }
 
-      // Récupérer le wallet client via Wagmi
+      // 2) Récupérer wallet client via Reown/Wagmi
       const reownService = (this.walletService as any).reownService;
-      const wagmiConfig = reownService.getWagmiAdapter()?.wagmiConfig;
-      
+      const wagmiConfig = reownService?.getWagmiAdapter?.()?.wagmiConfig;
       if (!wagmiConfig) {
-        alert('Wallet not properly configured');
-        return false;
+        throw new Error('Wallet not properly configured');
       }
 
       const walletClient = await getWalletClient(wagmiConfig);
       const account = getAccount(wagmiConfig);
-
       if (!walletClient || !account.address) {
-        alert('Failed to get wallet client');
-        return false;
+        throw new Error('Failed to get wallet client');
       }
 
-      // Utiliser le prix en Wei directement du backend
-      // Fallback : si priceWei n'existe pas, convertir depuis HBAR
+      // 3) Convertir le prix en BigInt (Wei)
       let priceInWei: bigint;
       
       if (listing.priceWei) {
-        // Nouveau format : prix en Wei directement
+        // Le backend nous donne déjà le prix en Wei
         priceInWei = BigInt(listing.priceWei);
         console.log('✅ Using priceWei from backend');
       } else {
-        // Ancien format : convertir depuis HBAR
+        // Fallback : convertir depuis HBAR
         const priceStr = listing.price.replace(' HBAR', '').trim();
         priceInWei = parseUnits(priceStr, 18);
         console.log('⚠️ Fallback: Converting HBAR to Wei');
       }
-      
+
       console.log('🔍 PRIX DEBUG:');
       console.log('   listing.price (display):', listing.price);
-      console.log('   listing.priceWei:', listing.priceWei || 'not provided');
+      console.log('   listing.priceWei (backend):', listing.priceWei);
       console.log('   priceInWei (BigInt):', priceInWei.toString());
-      console.log('   Expected 18 digits');
+      console.log('   Expected: Exactly', priceInWei.toString(), 'wei');
 
-      // Encoder l'appel à buyNFT(uint256)
+      // 4) Encoder l'appel à buyNFT(listingId)
       const data = encodeFunctionData({
         abi: MARKETPLACE_ABI,
         functionName: 'buyNFT',
@@ -203,44 +208,50 @@ export class MarketplaceService {
       console.log('   From:', account.address);
       console.log('   To:', this.MARKETPLACE_ADDRESS);
       console.log('   Value:', listing.price, 'HBAR');
+      console.log('   Value (Wei):', priceInWei.toString());
       console.log('   Listing ID:', listing.listingId);
 
-      // Envoyer la transaction via Reown/Wagmi
+      // 5) Envoyer la transaction AVEC LE PRIX EXACT
       const txHash = await walletClient.sendTransaction({
         account: account.address,
         to: this.MARKETPLACE_ADDRESS,
-        value: priceInWei,
+        value: priceInWei, // Prix EXACT, pas de buffer !
         data: data,
-        // Retirer chain pour éviter l'erreur kzg
-      } as any); // Cast en any pour contourner les problèmes de typage viem
+      } as any);
 
       console.log('⏳ Transaction sent:', txHash);
       console.log('   Waiting for confirmation...');
 
-      // Attendre la confirmation (optionnel, dépend de ta config Wagmi)
-      // const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: txHash });
-      
-      // Pour l'instant, on considère que c'est un succès
       alert(`✅ Transaction sent!\n\nTx Hash: ${txHash}\n\nThe NFT will be transferred once confirmed on the blockchain.`);
 
-      // Rafraîchir les listings après quelques secondes
-      setTimeout(() => {
-        this.fetchListings();
-      }, 5000);
+      // Rafraîchir après 5 secondes
+      setTimeout(() => this.fetchListings(), 5000);
 
       return true;
+
     } catch (error: any) {
       console.error('❌ Error buying NFT:', error);
-      
-      if (error.code === 4001 || error.message?.includes('User rejected')) {
-        alert('Transaction cancelled by user');
-      } else if (error.message?.includes('insufficient funds')) {
-        alert('Insufficient HBAR balance');
-      } else {
-        alert(`Failed to purchase NFT: ${error.message || 'Unknown error'}`);
+
+      let errorMessage = 'Failed to purchase NFT';
+
+      if (error.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient HBAR balance';
+      } else if (error.message?.includes('user rejected') || error.code === 4001) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (error.message?.includes('Insufficient payment')) {
+        errorMessage = 'Payment amount incorrect. Please refresh and try again.';
+      } else if (error.reason) {
+        errorMessage = error.reason;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      
+
+      this._error.set(errorMessage);
+      alert(errorMessage);
       return false;
+
+    } finally {
+      this._isLoading.set(false);
     }
   }
   

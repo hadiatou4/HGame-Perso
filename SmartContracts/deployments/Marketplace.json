@@ -1,0 +1,9 @@
+{
+  "network": "hederaTestnet",
+  "contractAddress": "0x7777e9978CDc0A8e52DEf826E219aa4A97484F8a",
+  "feeRecipient": "0x586b7DE650cf0e808573091af047f43B7b4D6363",
+  "feePercent": 2,
+  "owner": "0x586b7DE650cf0e808573091af047f43B7b4D6363",
+  "deployedAt": "2025-11-26T18:13:28.352Z",
+  "blockNumber": 28067077
+}

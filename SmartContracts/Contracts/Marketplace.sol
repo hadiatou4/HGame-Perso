@@ -4,8 +4,13 @@ pragma solidity ^0.8.20;
 import "./interfaces/IERC721.sol";
 
 /**
- * Marketplace pour trader des NFTs Space War
- * Compatible avec n'importe quel contrat ERC721
+ * Marketplace PRO pour Space War
+ * 
+ * SOLUTIONS APPLIQUÉES:
+ * 1. Pattern "Checks-Effects-Interactions" (CEI)
+ * 2. Pull Payment Pattern (plus sûr que push)
+ * 3. ReentrancyGuard
+ * 4. Ordre optimisé des opérations
  */
 contract Marketplace {
     
@@ -22,9 +27,15 @@ contract Marketplace {
     uint256 private _listingIdCounter;
     mapping(uint256 => Listing) public listings;
     
+    // Balances à retirer (Pull Payment Pattern)
+    mapping(address => uint256) public pendingWithdrawals;
+    
     uint256 public feePercent = 2;
     address public feeRecipient;
     address public owner;
+    
+    // Protection contre reentrancy
+    bool private locked;
     
     event NFTListed(
         uint256 indexed listingId,
@@ -52,20 +63,28 @@ contract Marketplace {
     
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     
+    event WithdrawalReady(address indexed recipient, uint256 amount);
+    event Withdrawn(address indexed recipient, uint256 amount);
+    
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
         _;
     }
     
+    modifier noReentrant() {
+        require(!locked, "No reentrancy");
+        locked = true;
+        _;
+        locked = false;
+    }
+    
     constructor(address _feeRecipient) {
         owner = msg.sender;
         feeRecipient = _feeRecipient;
+        _listingIdCounter = 0;
+        locked = false;
     }
     
-    /**
-     * Lister un NFT à vendre
-     * Le NFT doit être approuvé au marketplace avant
-     */
     function listNFT(
         address nftContract,
         uint256 tokenId,
@@ -80,8 +99,8 @@ contract Marketplace {
             "Marketplace not approved"
         );
         
-        _listingIdCounter++;
         uint256 listingId = _listingIdCounter;
+        _listingIdCounter++;
         
         listings[listingId] = Listing({
             listingId: listingId,
@@ -106,32 +125,36 @@ contract Marketplace {
     }
     
     /**
-     * Acheter un NFT listé
+     * Acheter un NFT avec Pull Payment Pattern
+     * Plus sûr et résout les problèmes de gas
      */
-    function buyNFT(uint256 listingId) external payable {
+    function buyNFT(uint256 listingId) external payable noReentrant {
         Listing storage listing = listings[listingId];
         
+        // CHECKS
         require(listing.active, "Listing not active");
-        require(msg.value >= listing.price, "Insufficient payment");
+        require(msg.value == listing.price, "Incorrect payment"); // EXACT price
         require(msg.sender != listing.seller, "Cannot buy own NFT");
         
+        // EFFECTS (modifier le state AVANT les external calls)
         listing.active = false;
         
         uint256 fee = (listing.price * feePercent) / 100;
         uint256 sellerAmount = listing.price - fee;
         
+        // Ajouter aux balances à retirer
+        pendingWithdrawals[listing.seller] += sellerAmount;
+        pendingWithdrawals[feeRecipient] += fee;
+        
+        emit WithdrawalReady(listing.seller, sellerAmount);
+        emit WithdrawalReady(feeRecipient, fee);
+        
+        // INTERACTIONS (external calls en dernier)
         IERC721(listing.nftContract).transferFrom(
             listing.seller,
             msg.sender,
             listing.tokenId
         );
-        
-        payable(listing.seller).transfer(sellerAmount);
-        payable(feeRecipient).transfer(fee);
-        
-        if (msg.value > listing.price) {
-            payable(msg.sender).transfer(msg.value - listing.price);
-        }
         
         emit NFTPurchased(
             listingId,
@@ -144,8 +167,29 @@ contract Marketplace {
     }
     
     /**
-     * Annuler un listing
+     * Retirer ses gains (Pull Payment)
      */
+    function withdraw() external noReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+        
+        // EFFECTS avant INTERACTION
+        pendingWithdrawals[msg.sender] = 0;
+        
+        // INTERACTION
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer failed");
+        
+        emit Withdrawn(msg.sender, amount);
+    }
+    
+    /**
+     * Voir combien on peut retirer
+     */
+    function getPendingWithdrawal(address account) external view returns (uint256) {
+        return pendingWithdrawals[account];
+    }
+    
     function cancelListing(uint256 listingId) external {
         Listing storage listing = listings[listingId];
         
@@ -157,35 +201,14 @@ contract Marketplace {
         emit ListingCancelled(listingId, msg.sender, block.timestamp);
     }
     
-    /**
-     * Obtenir les détails d'un listing
-     */
-    function getListing(uint256 listingId) external view returns (
-        address nftContract,
-        uint256 tokenId,
-        address seller,
-        uint256 price,
-        bool active,
-        uint256 listedAt
-    ) {
-        Listing memory listing = listings[listingId];
-        return (
-            listing.nftContract,
-            listing.tokenId,
-            listing.seller,
-            listing.price,
-            listing.active,
-            listing.listedAt
-        );
+    function getListing(uint256 listingId) external view returns (Listing memory) {
+        return listings[listingId];
     }
     
-    /**
-     * Retourne tous les listings actifs
-     */
     function getActiveListings() external view returns (Listing[] memory) {
         uint256 activeCount = 0;
         
-        for (uint256 i = 1; i <= _listingIdCounter; i++) {
+        for (uint256 i = 0; i < _listingIdCounter; i++) {
             if (listings[i].active) {
                 activeCount++;
             }
@@ -194,7 +217,7 @@ contract Marketplace {
         Listing[] memory activeListings = new Listing[](activeCount);
         uint256 index = 0;
         
-        for (uint256 i = 1; i <= _listingIdCounter; i++) {
+        for (uint256 i = 0; i < _listingIdCounter; i++) {
             if (listings[i].active) {
                 activeListings[index] = listings[i];
                 index++;
@@ -204,9 +227,6 @@ contract Marketplace {
         return activeListings;
     }
     
-    /**
-     * Mettre à jour les frais (seulement owner)
-     */
     function setFeePercent(uint256 newFeePercent) external onlyOwner {
         require(newFeePercent <= 10, "Fee too high");
         uint256 oldFee = feePercent;
@@ -214,17 +234,11 @@ contract Marketplace {
         emit FeeUpdated(oldFee, newFeePercent);
     }
     
-    /**
-     * Mettre à jour le destinataire des frais
-     */
     function setFeeRecipient(address newRecipient) external onlyOwner {
         require(newRecipient != address(0), "Invalid address");
         feeRecipient = newRecipient;
     }
     
-    /**
-     * Retourne le nombre total de listings créés
-     */
     function totalListings() external view returns (uint256) {
         return _listingIdCounter;
     }
