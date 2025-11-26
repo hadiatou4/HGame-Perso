@@ -13,7 +13,7 @@ async function createGameSessionTopic() {
   try {
     // Create the topic transaction
     const transaction = await new TopicCreateTransaction()
-      .setTopicMemo('Space War - Game Sessions Topic')
+      .setTopicMemo('Space War - Leaderboard Topic')
       .setAdminKey(HederaClient.getOperatorKey().publicKey)
       // Note: No submitKey set = anyone can submit messages (public topic)
       // If you want restricted submission, uncomment:

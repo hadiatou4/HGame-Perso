@@ -32,5 +32,11 @@ export type { HederaGameRewardNFT } from "./Contracts/Gamenftreward.sol/HederaGa
 export { HederaGameRewardNFT__factory } from "./factories/Contracts/Gamenftreward.sol/HederaGameRewardNFT__factory";
 export type { IHederaTokenService } from "./Contracts/IHederaTokenService";
 export { IHederaTokenService__factory } from "./factories/Contracts/IHederaTokenService__factory";
+export type { IERC721 } from "./Contracts/interfaces/IERC721";
+export { IERC721__factory } from "./factories/Contracts/interfaces/IERC721__factory";
 export type { LeaderboardManager } from "./Contracts/LeaderboardManager";
 export { LeaderboardManager__factory } from "./factories/Contracts/LeaderboardManager__factory";
+export type { Marketplace } from "./Contracts/Marketplace";
+export { Marketplace__factory } from "./factories/Contracts/Marketplace__factory";
+export type { SimpleNFT } from "./Contracts/SimpleNFT";
+export { SimpleNFT__factory } from "./factories/Contracts/SimpleNFT__factory";

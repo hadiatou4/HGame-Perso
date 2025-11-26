@@ -5,7 +5,6 @@ import { MarketplaceService } from '../../services/marketplace.service';
 import { NftService } from '../../services/nft.service';
 import { WalletService } from '../../services/wallet.service';
 import { Listing, NFT } from '../../models/marketplace.model';
-import { toast } from 'sonner';
 
 @Component({
   selector: 'app-marketplace',
@@ -90,24 +89,56 @@ export class MarketplaceComponent {
   async handleListNft() {
     const nft = this.selectedNftToList();
     const price = this.listingPrice();
+    
     if (!nft || !price || parseFloat(price) <= 0) {
-      alert('Please select an NFT and enter a valid price.'); // Replace with better toast/notification
+      alert('Please enter a valid price greater than 0');
       return;
     }
+    
     const success = await this.marketplaceService.listNFT(nft, price);
+    
     if (success) {
+      alert(`✅ NFT listed for ${price} HBAR!`);
       this.isListingDialogOpen.set(false);
-      // Ideally, we'd also remove this from the player's list of ownable NFTs to list
+      
+      // Refresh player NFTs
+      await this.nftService.refreshPlayerNfts();
     } else {
-      alert('Failed to list NFT.');
+      alert('❌ Failed to list NFT. Please try again.');
     }
   }
   
   handleBuy(listing: Listing) {
     if (this.walletState().status !== 'connected') {
-        this.walletService.openConnectModal();
-        return;
+      this.walletService.openConnectModal();
+      return;
     }
     this.marketplaceService.buyNFT(listing);
+  }
+
+  // Nouvelle méthode pour cancel un listing
+  async handleCancelListing(listing: Listing) {
+    if (this.walletState().status !== 'connected') {
+      this.walletService.openConnectModal();
+      return;
+    }
+
+    const success = await this.marketplaceService.cancelListing(listing);
+    
+    if (success) {
+      alert('✅ Listing cancelled successfully!');
+      
+      // Refresh player NFTs
+      await this.nftService.refreshPlayerNfts();
+    } else {
+      alert('❌ Failed to cancel listing');
+    }
+  }
+
+  // Vérifier si un listing appartient au joueur connecté
+  isOwnListing(listing: Listing): boolean {
+    const walletAddress = this.walletState().address?.toLowerCase();
+    const sellerAddress = listing.seller.toLowerCase();
+    return walletAddress === sellerAddress;
   }
 }

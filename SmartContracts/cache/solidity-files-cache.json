@@ -1345,8 +1345,8 @@
       ]
     },
     "C:\\Users\\Hadiatou\\Desktop\\HGame-Perso\\SmartContracts\\Contracts\\LeaderboardManager.sol": {
-      "lastModificationDate": 1763943372590,
-      "contentHash": "29e98d1a6936bf0ef82aa60dc17feb12",
+      "lastModificationDate": 1763974068178,
+      "contentHash": "9dcbba5d607c7b41241fff7c666487a8",
       "sourceName": "Contracts/LeaderboardManager.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -1396,6 +1396,170 @@
       ],
       "artifacts": [
         "LeaderboardManager"
+      ]
+    },
+    "C:\\Users\\Hadiatou\\Desktop\\HGame-Perso\\SmartContracts\\Contracts\\interfaces\\IERC721.sol": {
+      "lastModificationDate": 1764021819627,
+      "contentHash": "d89cff4ad2965773cf131b6f65411d16",
+      "sourceName": "Contracts/interfaces/IERC721.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "optimizer": {
+            "enabled": true,
+            "runs": 200,
+            "details": {
+              "cse": true,
+              "yul": true,
+              "inliner": false,
+              "peephole": true,
+              "yulDetails": {
+                "optimizerSteps": "dhfoDgvulfnTUtnIf:fDnTOc",
+                "stackAllocation": true
+              },
+              "deduplicate": true,
+              "orderLiterals": true,
+              "jumpdestRemover": true,
+              "constantOptimizer": true
+            }
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IERC721"
+      ]
+    },
+    "C:\\Users\\Hadiatou\\Desktop\\HGame-Perso\\SmartContracts\\Contracts\\Marketplace.sol": {
+      "lastModificationDate": 1764021833104,
+      "contentHash": "08791b75d21b8cf9da2fd20a4485fc89",
+      "sourceName": "Contracts/Marketplace.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "optimizer": {
+            "enabled": true,
+            "runs": 200,
+            "details": {
+              "cse": true,
+              "yul": true,
+              "inliner": false,
+              "peephole": true,
+              "yulDetails": {
+                "optimizerSteps": "dhfoDgvulfnTUtnIf:fDnTOc",
+                "stackAllocation": true
+              },
+              "deduplicate": true,
+              "orderLiterals": true,
+              "jumpdestRemover": true,
+              "constantOptimizer": true
+            }
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/IERC721.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Marketplace"
+      ]
+    },
+    "C:\\Users\\Hadiatou\\Desktop\\HGame-Perso\\SmartContracts\\Contracts\\SimpleNFT.sol": {
+      "lastModificationDate": 1764021718206,
+      "contentHash": "b854ea556ed7887657eb4cc88b4d78a7",
+      "sourceName": "Contracts/SimpleNFT.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "viaIR": true,
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "optimizer": {
+            "enabled": true,
+            "runs": 200,
+            "details": {
+              "cse": true,
+              "yul": true,
+              "inliner": false,
+              "peephole": true,
+              "yulDetails": {
+                "optimizerSteps": "dhfoDgvulfnTUtnIf:fDnTOc",
+                "stackAllocation": true
+              },
+              "deduplicate": true,
+              "orderLiterals": true,
+              "jumpdestRemover": true,
+              "constantOptimizer": true
+            }
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SimpleNFT"
       ]
     }
   }

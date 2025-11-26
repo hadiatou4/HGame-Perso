@@ -19,7 +19,8 @@ export interface Listing {
   listingId: string;
   tokenId: string;
   seller: string;
-  price: string; // In HBAR, as a string
+  price: string; // In HBAR, as a string (for display)
+  priceWei?: string; // Price in Wei (for transactions)
   active: boolean;
   listedAt: number; // Timestamp
   nft: NFT; // Nested NFT details

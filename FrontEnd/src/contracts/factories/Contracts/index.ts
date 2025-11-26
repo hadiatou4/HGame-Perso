@@ -2,5 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as gamenftrewardSol from "./Gamenftreward.sol";
+export * as interfaces from "./interfaces";
 export { IHederaTokenService__factory } from "./IHederaTokenService__factory";
 export { LeaderboardManager__factory } from "./LeaderboardManager__factory";
+export { Marketplace__factory } from "./Marketplace__factory";
+export { SimpleNFT__factory } from "./SimpleNFT__factory";

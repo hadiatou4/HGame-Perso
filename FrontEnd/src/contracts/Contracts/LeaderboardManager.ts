@@ -24,58 +24,71 @@ import type {
 } from "../common";
 
 export declare namespace LeaderboardManager {
-  export type PlayerStatsStruct = {
-    playerAddress: AddressLike;
+  export type LeaderboardEntryStruct = {
+    rank: BigNumberish;
+    player: AddressLike;
     highestScore: BigNumberish;
     totalKills: BigNumberish;
     totalSessions: BigNumberish;
+    averageAccuracy: BigNumberish;
     lastUpdated: BigNumberish;
-    exists: boolean;
   };
 
-  export type PlayerStatsStructOutput = [
-    playerAddress: string,
+  export type LeaderboardEntryStructOutput = [
+    rank: bigint,
+    player: string,
     highestScore: bigint,
     totalKills: bigint,
     totalSessions: bigint,
-    lastUpdated: bigint,
-    exists: boolean
+    averageAccuracy: bigint,
+    lastUpdated: bigint
   ] & {
-    playerAddress: string;
+    rank: bigint;
+    player: string;
     highestScore: bigint;
     totalKills: bigint;
     totalSessions: bigint;
+    averageAccuracy: bigint;
     lastUpdated: bigint;
-    exists: boolean;
   };
 }
 
 export interface LeaderboardManagerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "MAX_KILLS"
+      | "MAX_SCORE"
       | "gameServer"
+      | "getGlobalStats"
       | "getPlayerRank"
       | "getPlayerStats"
       | "getTop10"
-      | "getTopPlayersAddresses"
       | "owner"
       | "players"
       | "setGameServer"
+      | "submitSession"
       | "topPlayers"
       | "totalPlayers"
+      | "totalSessions"
       | "transferOwnership"
-      | "updatePlayerScore"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
-      | "GameServerUpdated"
-      | "NewTopPlayer"
-      | "ScoreUpdated"
+      | "InvalidSessionRejected"
+      | "LeaderboardUpdated"
+      | "NewHighScore"
+      | "SessionSubmitted"
   ): EventFragment;
 
+  encodeFunctionData(functionFragment: "MAX_KILLS", values?: undefined): string;
+  encodeFunctionData(functionFragment: "MAX_SCORE", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "gameServer",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getGlobalStats",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -87,10 +100,6 @@ export interface LeaderboardManagerInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "getTop10", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "getTopPlayersAddresses",
-    values?: undefined
-  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "players",
@@ -101,6 +110,18 @@ export interface LeaderboardManagerInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "submitSession",
+    values: [
+      AddressLike,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      string
+    ]
+  ): string;
+  encodeFunctionData(
     functionFragment: "topPlayers",
     values: [BigNumberish]
   ): string;
@@ -109,15 +130,21 @@ export interface LeaderboardManagerInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "totalSessions",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
-  encodeFunctionData(
-    functionFragment: "updatePlayerScore",
-    values: [AddressLike, BigNumberish, BigNumberish, string]
-  ): string;
 
+  decodeFunctionResult(functionFragment: "MAX_KILLS", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "MAX_SCORE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "gameServer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getGlobalStats",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getPlayerRank",
     data: BytesLike
@@ -127,14 +154,14 @@ export interface LeaderboardManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getTop10", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "getTopPlayersAddresses",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "players", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGameServer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "submitSession",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "topPlayers", data: BytesLike): Result;
@@ -143,39 +170,21 @@ export interface LeaderboardManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "transferOwnership",
+    functionFragment: "totalSessions",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "updatePlayerScore",
+    functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
 }
 
-export namespace GameServerUpdatedEvent {
-  export type InputTuple = [oldServer: AddressLike, newServer: AddressLike];
-  export type OutputTuple = [oldServer: string, newServer: string];
-  export interface OutputObject {
-    oldServer: string;
-    newServer: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace NewTopPlayerEvent {
-  export type InputTuple = [
-    player: AddressLike,
-    rank: BigNumberish,
-    score: BigNumberish
-  ];
-  export type OutputTuple = [player: string, rank: bigint, score: bigint];
+export namespace InvalidSessionRejectedEvent {
+  export type InputTuple = [player: AddressLike, reason: string];
+  export type OutputTuple = [player: string, reason: string];
   export interface OutputObject {
     player: string;
-    rank: bigint;
-    score: bigint;
+    reason: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -183,23 +192,73 @@ export namespace NewTopPlayerEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace ScoreUpdatedEvent {
+export namespace LeaderboardUpdatedEvent {
+  export type InputTuple = [
+    blockNumber: BigNumberish,
+    timestamp: BigNumberish,
+    leaderboard: LeaderboardManager.LeaderboardEntryStruct[]
+  ];
+  export type OutputTuple = [
+    blockNumber: bigint,
+    timestamp: bigint,
+    leaderboard: LeaderboardManager.LeaderboardEntryStructOutput[]
+  ];
+  export interface OutputObject {
+    blockNumber: bigint;
+    timestamp: bigint;
+    leaderboard: LeaderboardManager.LeaderboardEntryStructOutput[];
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace NewHighScoreEvent {
   export type InputTuple = [
     player: AddressLike,
-    newHighScore: BigNumberish,
-    sessionScore: BigNumberish,
+    oldScore: BigNumberish,
+    newScore: BigNumberish
+  ];
+  export type OutputTuple = [
+    player: string,
+    oldScore: bigint,
+    newScore: bigint
+  ];
+  export interface OutputObject {
+    player: string;
+    oldScore: bigint;
+    newScore: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace SessionSubmittedEvent {
+  export type InputTuple = [
+    player: AddressLike,
+    score: BigNumberish,
+    kills: BigNumberish,
+    accuracy: BigNumberish,
+    timeSurvived: BigNumberish,
     hcsMessageId: string
   ];
   export type OutputTuple = [
     player: string,
-    newHighScore: bigint,
-    sessionScore: bigint,
+    score: bigint,
+    kills: bigint,
+    accuracy: bigint,
+    timeSurvived: bigint,
     hcsMessageId: string
   ];
   export interface OutputObject {
     player: string;
-    newHighScore: bigint;
-    sessionScore: bigint;
+    score: bigint;
+    kills: bigint;
+    accuracy: bigint;
+    timeSurvived: bigint;
     hcsMessageId: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -251,34 +310,59 @@ export interface LeaderboardManager extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  MAX_KILLS: TypedContractMethod<[], [bigint], "view">;
+
+  MAX_SCORE: TypedContractMethod<[], [bigint], "view">;
+
   gameServer: TypedContractMethod<[], [string], "view">;
+
+  getGlobalStats: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, string] & {
+        _totalPlayers: bigint;
+        _totalSessions: bigint;
+        highestScoreEver: bigint;
+        topPlayer: string;
+      }
+    ],
+    "view"
+  >;
 
   getPlayerRank: TypedContractMethod<[player: AddressLike], [bigint], "view">;
 
   getPlayerStats: TypedContractMethod<
     [player: AddressLike],
-    [LeaderboardManager.PlayerStatsStructOutput],
+    [
+      [bigint, bigint, bigint, bigint, bigint, boolean] & {
+        highestScore: bigint;
+        totalKills: bigint;
+        totalSessions: bigint;
+        averageAccuracy: bigint;
+        lastUpdated: bigint;
+        exists: boolean;
+      }
+    ],
     "view"
   >;
 
   getTop10: TypedContractMethod<
     [],
-    [LeaderboardManager.PlayerStatsStructOutput[]],
+    [LeaderboardManager.LeaderboardEntryStructOutput[]],
     "view"
   >;
-
-  getTopPlayersAddresses: TypedContractMethod<[], [string[]], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
   players: TypedContractMethod<
     [arg0: AddressLike],
     [
-      [string, bigint, bigint, bigint, bigint, boolean] & {
+      [string, bigint, bigint, bigint, bigint, bigint, boolean] & {
         playerAddress: string;
         highestScore: bigint;
         totalKills: bigint;
         totalSessions: bigint;
+        totalAccuracy: bigint;
         lastUpdated: bigint;
         exists: boolean;
       }
@@ -287,7 +371,21 @@ export interface LeaderboardManager extends BaseContract {
   >;
 
   setGameServer: TypedContractMethod<
-    [newGameServer: AddressLike],
+    [newServer: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  submitSession: TypedContractMethod<
+    [
+      player: AddressLike,
+      score: BigNumberish,
+      kills: BigNumberish,
+      accuracy: BigNumberish,
+      timeSurvived: BigNumberish,
+      timestamp: BigNumberish,
+      hcsMessageId: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -296,19 +394,10 @@ export interface LeaderboardManager extends BaseContract {
 
   totalPlayers: TypedContractMethod<[], [bigint], "view">;
 
+  totalSessions: TypedContractMethod<[], [bigint], "view">;
+
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  updatePlayerScore: TypedContractMethod<
-    [
-      player: AddressLike,
-      sessionScore: BigNumberish,
-      kills: BigNumberish,
-      hcsMessageId: string
-    ],
     [void],
     "nonpayable"
   >;
@@ -318,8 +407,28 @@ export interface LeaderboardManager extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "MAX_KILLS"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "MAX_SCORE"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "gameServer"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "getGlobalStats"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, string] & {
+        _totalPlayers: bigint;
+        _totalSessions: bigint;
+        highestScoreEver: bigint;
+        topPlayer: string;
+      }
+    ],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getPlayerRank"
   ): TypedContractMethod<[player: AddressLike], [bigint], "view">;
@@ -327,19 +436,25 @@ export interface LeaderboardManager extends BaseContract {
     nameOrSignature: "getPlayerStats"
   ): TypedContractMethod<
     [player: AddressLike],
-    [LeaderboardManager.PlayerStatsStructOutput],
+    [
+      [bigint, bigint, bigint, bigint, bigint, boolean] & {
+        highestScore: bigint;
+        totalKills: bigint;
+        totalSessions: bigint;
+        averageAccuracy: bigint;
+        lastUpdated: bigint;
+        exists: boolean;
+      }
+    ],
     "view"
   >;
   getFunction(
     nameOrSignature: "getTop10"
   ): TypedContractMethod<
     [],
-    [LeaderboardManager.PlayerStatsStructOutput[]],
+    [LeaderboardManager.LeaderboardEntryStructOutput[]],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "getTopPlayersAddresses"
-  ): TypedContractMethod<[], [string[]], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -348,11 +463,12 @@ export interface LeaderboardManager extends BaseContract {
   ): TypedContractMethod<
     [arg0: AddressLike],
     [
-      [string, bigint, bigint, bigint, bigint, boolean] & {
+      [string, bigint, bigint, bigint, bigint, bigint, boolean] & {
         playerAddress: string;
         highestScore: bigint;
         totalKills: bigint;
         totalSessions: bigint;
+        totalAccuracy: bigint;
         lastUpdated: bigint;
         exists: boolean;
       }
@@ -361,7 +477,22 @@ export interface LeaderboardManager extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "setGameServer"
-  ): TypedContractMethod<[newGameServer: AddressLike], [void], "nonpayable">;
+  ): TypedContractMethod<[newServer: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "submitSession"
+  ): TypedContractMethod<
+    [
+      player: AddressLike,
+      score: BigNumberish,
+      kills: BigNumberish,
+      accuracy: BigNumberish,
+      timeSurvived: BigNumberish,
+      timestamp: BigNumberish,
+      hcsMessageId: string
+    ],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "topPlayers"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
@@ -369,75 +500,84 @@ export interface LeaderboardManager extends BaseContract {
     nameOrSignature: "totalPlayers"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
+    nameOrSignature: "totalSessions"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "updatePlayerScore"
-  ): TypedContractMethod<
-    [
-      player: AddressLike,
-      sessionScore: BigNumberish,
-      kills: BigNumberish,
-      hcsMessageId: string
-    ],
-    [void],
-    "nonpayable"
-  >;
 
   getEvent(
-    key: "GameServerUpdated"
+    key: "InvalidSessionRejected"
   ): TypedContractEvent<
-    GameServerUpdatedEvent.InputTuple,
-    GameServerUpdatedEvent.OutputTuple,
-    GameServerUpdatedEvent.OutputObject
+    InvalidSessionRejectedEvent.InputTuple,
+    InvalidSessionRejectedEvent.OutputTuple,
+    InvalidSessionRejectedEvent.OutputObject
   >;
   getEvent(
-    key: "NewTopPlayer"
+    key: "LeaderboardUpdated"
   ): TypedContractEvent<
-    NewTopPlayerEvent.InputTuple,
-    NewTopPlayerEvent.OutputTuple,
-    NewTopPlayerEvent.OutputObject
+    LeaderboardUpdatedEvent.InputTuple,
+    LeaderboardUpdatedEvent.OutputTuple,
+    LeaderboardUpdatedEvent.OutputObject
   >;
   getEvent(
-    key: "ScoreUpdated"
+    key: "NewHighScore"
   ): TypedContractEvent<
-    ScoreUpdatedEvent.InputTuple,
-    ScoreUpdatedEvent.OutputTuple,
-    ScoreUpdatedEvent.OutputObject
+    NewHighScoreEvent.InputTuple,
+    NewHighScoreEvent.OutputTuple,
+    NewHighScoreEvent.OutputObject
+  >;
+  getEvent(
+    key: "SessionSubmitted"
+  ): TypedContractEvent<
+    SessionSubmittedEvent.InputTuple,
+    SessionSubmittedEvent.OutputTuple,
+    SessionSubmittedEvent.OutputObject
   >;
 
   filters: {
-    "GameServerUpdated(address,address)": TypedContractEvent<
-      GameServerUpdatedEvent.InputTuple,
-      GameServerUpdatedEvent.OutputTuple,
-      GameServerUpdatedEvent.OutputObject
+    "InvalidSessionRejected(address,string)": TypedContractEvent<
+      InvalidSessionRejectedEvent.InputTuple,
+      InvalidSessionRejectedEvent.OutputTuple,
+      InvalidSessionRejectedEvent.OutputObject
     >;
-    GameServerUpdated: TypedContractEvent<
-      GameServerUpdatedEvent.InputTuple,
-      GameServerUpdatedEvent.OutputTuple,
-      GameServerUpdatedEvent.OutputObject
-    >;
-
-    "NewTopPlayer(address,uint256,uint256)": TypedContractEvent<
-      NewTopPlayerEvent.InputTuple,
-      NewTopPlayerEvent.OutputTuple,
-      NewTopPlayerEvent.OutputObject
-    >;
-    NewTopPlayer: TypedContractEvent<
-      NewTopPlayerEvent.InputTuple,
-      NewTopPlayerEvent.OutputTuple,
-      NewTopPlayerEvent.OutputObject
+    InvalidSessionRejected: TypedContractEvent<
+      InvalidSessionRejectedEvent.InputTuple,
+      InvalidSessionRejectedEvent.OutputTuple,
+      InvalidSessionRejectedEvent.OutputObject
     >;
 
-    "ScoreUpdated(address,uint256,uint256,string)": TypedContractEvent<
-      ScoreUpdatedEvent.InputTuple,
-      ScoreUpdatedEvent.OutputTuple,
-      ScoreUpdatedEvent.OutputObject
+    "LeaderboardUpdated(uint256,uint256,tuple[10])": TypedContractEvent<
+      LeaderboardUpdatedEvent.InputTuple,
+      LeaderboardUpdatedEvent.OutputTuple,
+      LeaderboardUpdatedEvent.OutputObject
     >;
-    ScoreUpdated: TypedContractEvent<
-      ScoreUpdatedEvent.InputTuple,
-      ScoreUpdatedEvent.OutputTuple,
-      ScoreUpdatedEvent.OutputObject
+    LeaderboardUpdated: TypedContractEvent<
+      LeaderboardUpdatedEvent.InputTuple,
+      LeaderboardUpdatedEvent.OutputTuple,
+      LeaderboardUpdatedEvent.OutputObject
+    >;
+
+    "NewHighScore(address,uint256,uint256)": TypedContractEvent<
+      NewHighScoreEvent.InputTuple,
+      NewHighScoreEvent.OutputTuple,
+      NewHighScoreEvent.OutputObject
+    >;
+    NewHighScore: TypedContractEvent<
+      NewHighScoreEvent.InputTuple,
+      NewHighScoreEvent.OutputTuple,
+      NewHighScoreEvent.OutputObject
+    >;
+
+    "SessionSubmitted(address,uint256,uint256,uint256,uint256,string)": TypedContractEvent<
+      SessionSubmittedEvent.InputTuple,
+      SessionSubmittedEvent.OutputTuple,
+      SessionSubmittedEvent.OutputObject
+    >;
+    SessionSubmitted: TypedContractEvent<
+      SessionSubmittedEvent.InputTuple,
+      SessionSubmittedEvent.OutputTuple,
+      SessionSubmittedEvent.OutputObject
     >;
   };
 }

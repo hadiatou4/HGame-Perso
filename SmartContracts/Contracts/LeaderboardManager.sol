@@ -2,9 +2,8 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title LeaderboardManager
- * @notice Gère le leaderboard on-chain pour le jeu Space War
- * @dev Stocke le top 10 des joueurs et leurs statistiques
+ * @title LeaderboardManager - 100% On-Chain avec HCS Integration
+ * @notice Calcule le leaderboard et émet un event pour publication sur HCS Topic
  */
 contract LeaderboardManager {
     
@@ -13,53 +12,73 @@ contract LeaderboardManager {
     // ============================================
     
     struct PlayerStats {
-        address playerAddress;      // Adresse du joueur
-        uint256 highestScore;       // Meilleur score
-        uint256 totalKills;         // Total de kills
-        uint256 totalSessions;      // Nombre de sessions jouées
-        uint256 lastUpdated;        // Timestamp de la dernière mise à jour
-        bool exists;                // Flag pour savoir si le joueur existe
+        address playerAddress;
+        uint256 highestScore;
+        uint256 totalKills;
+        uint256 totalSessions;
+        uint256 totalAccuracy;      // Somme pour calculer moyenne
+        uint256 lastUpdated;
+        bool exists;
+    }
+    
+    struct LeaderboardEntry {
+        uint256 rank;               // 1-10
+        address player;
+        uint256 highestScore;
+        uint256 totalKills;
+        uint256 totalSessions;
+        uint256 averageAccuracy;    // Calculé
+        uint256 lastUpdated;
     }
     
     // ============================================
     // STATE VARIABLES
     // ============================================
     
-    // Mapping: adresse joueur => stats
     mapping(address => PlayerStats) public players;
-    
-    // Array des top 10 joueurs (trié par score décroissant)
     address[10] public topPlayers;
     
-    // Compteur total de joueurs uniques
     uint256 public totalPlayers;
+    uint256 public totalSessions;
     
-    // Adresse du serveur de jeu autorisé à mettre à jour
     address public gameServer;
-    
-    // Owner du contrat (pour administration)
     address public owner;
+    
+    uint256 public constant MAX_SCORE = 1000000;
+    uint256 public constant MAX_KILLS = 10000;
     
     // ============================================
     // EVENTS
     // ============================================
     
-    event ScoreUpdated(
+    event SessionSubmitted(
         address indexed player,
-        uint256 newHighScore,
-        uint256 sessionScore,
+        uint256 score,
+        uint256 kills,
+        uint256 accuracy,
+        uint256 timeSurvived,
         string hcsMessageId
     );
     
-    event NewTopPlayer(
+    event NewHighScore(
         address indexed player,
-        uint256 rank,
-        uint256 score
+        uint256 oldScore,
+        uint256 newScore
     );
     
-    event GameServerUpdated(
-        address indexed oldServer,
-        address indexed newServer
+    /**
+     * @notice Event émis quand le leaderboard est mis à jour
+     * @dev Le backend écoute cet event pour publier sur HCS Topic Leaderboard
+     */
+    event LeaderboardUpdated(
+        uint256 indexed blockNumber,
+        uint256 timestamp,
+        LeaderboardEntry[10] leaderboard
+    );
+    
+    event InvalidSessionRejected(
+        address indexed player,
+        string reason
     );
     
     // ============================================
@@ -67,12 +86,12 @@ contract LeaderboardManager {
     // ============================================
     
     modifier onlyGameServer() {
-        require(msg.sender == gameServer, "Not authorized: only game server");
+        require(msg.sender == gameServer, "Not authorized");
         _;
     }
     
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not authorized: only owner");
+        require(msg.sender == owner, "Not owner");
         _;
     }
     
@@ -81,149 +100,208 @@ contract LeaderboardManager {
     // ============================================
     
     constructor(address _gameServer) {
-        require(_gameServer != address(0), "Invalid game server address");
+        require(_gameServer != address(0), "Invalid address");
         owner = msg.sender;
         gameServer = _gameServer;
     }
     
     // ============================================
-    // MAIN FUNCTIONS
+    // MAIN FUNCTION
     // ============================================
     
     /**
-     * @notice Met à jour le score d'un joueur après validation HCS
-     * @param player Adresse du joueur
-     * @param sessionScore Score de cette session
-     * @param kills Nombre de kills de cette session
-     * @param hcsMessageId ID du message HCS (pour traçabilité)
+     * @notice Soumet une session complète
      */
-    function updatePlayerScore(
+    function submitSession(
         address player,
-        uint256 sessionScore,
+        uint256 score,
         uint256 kills,
+        uint256 accuracy,
+        uint256 timeSurvived,
+        uint256 timestamp,
         string calldata hcsMessageId
     ) external onlyGameServer {
-        require(player != address(0), "Invalid player address");
-        // Score peut être 0 (le joueur a perdu immédiatement)
         
+        // Validation
+        require(player != address(0), "Invalid player");
+        
+        if (score > MAX_SCORE) {
+            emit InvalidSessionRejected(player, "Score too high");
+            return;
+        }
+        
+        if (kills > MAX_KILLS) {
+            emit InvalidSessionRejected(player, "Kills too high");
+            return;
+        }
+        
+        if (accuracy > 100) {
+            emit InvalidSessionRejected(player, "Invalid accuracy");
+            return;
+        }
+        
+        if (timestamp > block.timestamp) {
+            emit InvalidSessionRejected(player, "Future timestamp");
+            return;
+        }
+        
+        // Mise à jour stats
         PlayerStats storage stats = players[player];
         
-        // Si c'est un nouveau joueur
-        if (!stats.exists) {
+        bool isNewPlayer = !stats.exists;
+        if (isNewPlayer) {
             stats.playerAddress = player;
             stats.exists = true;
             totalPlayers++;
         }
         
-        // Mettre à jour les stats
-        bool isNewHighScore = sessionScore > stats.highestScore;
+        uint256 oldHighScore = stats.highestScore;
+        bool isNewHighScore = score > stats.highestScore;
+        
         if (isNewHighScore) {
-            stats.highestScore = sessionScore;
+            stats.highestScore = score;
+            emit NewHighScore(player, oldHighScore, score);
         }
         
         stats.totalKills += kills;
         stats.totalSessions++;
+        stats.totalAccuracy += accuracy;
         stats.lastUpdated = block.timestamp;
         
-        emit ScoreUpdated(player, stats.highestScore, sessionScore, hcsMessageId);
+        totalSessions++;
         
-        // Mettre à jour le top 10 si nécessaire
+        emit SessionSubmitted(player, score, kills, accuracy, timeSurvived, hcsMessageId);
+        
+        // Mise à jour du classement si nouveau high score
         if (isNewHighScore) {
-            _updateTopPlayers(player);
+            bool leaderboardChanged = _updateLeaderboard(player, score);
+            
+            // Émettre l'event si le leaderboard a changé
+            if (leaderboardChanged) {
+                _emitLeaderboardUpdate();
+            }
         }
     }
     
+    // ============================================
+    // LEADERBOARD LOGIC
+    // ============================================
+    
     /**
-     * @notice Met à jour le classement des top 10 joueurs
-     * @dev Appelé automatiquement après chaque nouveau high score
+     * @notice Met à jour le classement
+     * @return true si le leaderboard a changé
      */
-    function _updateTopPlayers(address player) private {
-        uint256 playerScore = players[player].highestScore;
+    function _updateLeaderboard(address player, uint256 score) private returns (bool) {
         
-        // Vérifier si le joueur est déjà dans le top 10
-        int256 currentPosition = -1;
+        // Position actuelle du joueur
+        int256 currentPos = -1;
         for (uint256 i = 0; i < 10; i++) {
             if (topPlayers[i] == player) {
-                currentPosition = int256(i);
+                currentPos = int256(i);
                 break;
             }
         }
         
-        // Trouver la nouvelle position du joueur
-        uint256 newPosition = 10; // Par défaut, hors top 10
+        // Nouvelle position
+        uint256 newPos = 10;
         for (uint256 i = 0; i < 10; i++) {
-            if (topPlayers[i] == address(0) || 
-                playerScore > players[topPlayers[i]].highestScore) {
-                newPosition = i;
+            if (topPlayers[i] == address(0) || score > players[topPlayers[i]].highestScore) {
+                newPos = i;
                 break;
             }
         }
         
-        // Si le joueur mérite d'être dans le top 10
-        if (newPosition < 10) {
-            // Si le joueur était déjà dans le top 10, le retirer de son ancienne position
-            if (currentPosition >= 0) {
-                _removeFromPosition(uint256(currentPosition));
-            }
-            
-            // Insérer le joueur à sa nouvelle position
-            _insertAtPosition(newPosition, player);
-            
-            emit NewTopPlayer(player, newPosition + 1, playerScore);
+        // Si pas de changement dans le top 10
+        if (newPos >= 10 && currentPos < 0) {
+            return false;
         }
+        
+        // Si le joueur était déjà dans le top, le retirer
+        if (currentPos >= 0) {
+            _removeFromTop(uint256(currentPos));
+        }
+        
+        // Insérer à la nouvelle position
+        if (newPos < 10) {
+            _insertAtPosition(newPos, player);
+        }
+        
+        return true; // Le leaderboard a changé
     }
     
-    /**
-     * @notice Retire un joueur d'une position donnée
-     */
-    function _removeFromPosition(uint256 position) private {
-        require(position < 10, "Invalid position");
-        
-        // Décaler tous les joueurs après cette position
-        for (uint256 i = position; i < 9; i++) {
+    function _removeFromTop(uint256 pos) private {
+        for (uint256 i = pos; i < 9; i++) {
             topPlayers[i] = topPlayers[i + 1];
         }
         topPlayers[9] = address(0);
     }
     
-    /**
-     * @notice Insère un joueur à une position donnée
-     */
-    function _insertAtPosition(uint256 position, address player) private {
-        require(position < 10, "Invalid position");
-        
-        // Décaler tous les joueurs après cette position
-        for (uint256 i = 9; i > position; i--) {
+    function _insertAtPosition(uint256 pos, address player) private {
+        for (uint256 i = 9; i > pos; i--) {
             topPlayers[i] = topPlayers[i - 1];
         }
+        topPlayers[pos] = player;
+    }
+    
+    /**
+     * @notice Émet l'event LeaderboardUpdated avec le top 10 complet
+     */
+    function _emitLeaderboardUpdate() private {
+        LeaderboardEntry[10] memory leaderboard;
         
-        // Insérer le nouveau joueur
-        topPlayers[position] = player;
+        for (uint256 i = 0; i < 10; i++) {
+            if (topPlayers[i] != address(0)) {
+                PlayerStats memory stats = players[topPlayers[i]];
+                
+                leaderboard[i] = LeaderboardEntry({
+                    rank: i + 1,
+                    player: stats.playerAddress,
+                    highestScore: stats.highestScore,
+                    totalKills: stats.totalKills,
+                    totalSessions: stats.totalSessions,
+                    averageAccuracy: stats.totalSessions > 0 
+                        ? stats.totalAccuracy / stats.totalSessions 
+                        : 0,
+                    lastUpdated: stats.lastUpdated
+                });
+            } else {
+                // Slot vide
+                leaderboard[i] = LeaderboardEntry({
+                    rank: i + 1,
+                    player: address(0),
+                    highestScore: 0,
+                    totalKills: 0,
+                    totalSessions: 0,
+                    averageAccuracy: 0,
+                    lastUpdated: 0
+                });
+            }
+        }
+        
+        emit LeaderboardUpdated(block.number, block.timestamp, leaderboard);
     }
     
     // ============================================
     // VIEW FUNCTIONS
     // ============================================
     
-    /**
-     * @notice Récupère le top 10 des joueurs avec leurs stats complètes
-     * @return Array de PlayerStats (top 10)
-     */
-    function getTop10() external view returns (PlayerStats[10] memory) {
-        PlayerStats[10] memory result;
+    function getTop10() external view returns (LeaderboardEntry[10] memory) {
+        LeaderboardEntry[10] memory result;
         
         for (uint256 i = 0; i < 10; i++) {
             if (topPlayers[i] != address(0)) {
-                result[i] = players[topPlayers[i]];
-            } else {
-                // Joueur vide (slot non rempli)
-                result[i] = PlayerStats({
-                    playerAddress: address(0),
-                    highestScore: 0,
-                    totalKills: 0,
-                    totalSessions: 0,
-                    lastUpdated: 0,
-                    exists: false
+                PlayerStats memory stats = players[topPlayers[i]];
+                
+                result[i] = LeaderboardEntry({
+                    rank: i + 1,
+                    player: stats.playerAddress,
+                    highestScore: stats.highestScore,
+                    totalKills: stats.totalKills,
+                    totalSessions: stats.totalSessions,
+                    averageAccuracy: stats.totalSessions > 0 
+                        ? stats.totalAccuracy / stats.totalSessions 
+                        : 0,
+                    lastUpdated: stats.lastUpdated
                 });
             }
         }
@@ -231,56 +309,64 @@ contract LeaderboardManager {
         return result;
     }
     
-    /**
-     * @notice Récupère le rang d'un joueur dans le top 10
-     * @param player Adresse du joueur
-     * @return Rang du joueur (1-10), ou 0 si hors top 10
-     */
     function getPlayerRank(address player) external view returns (uint256) {
         for (uint256 i = 0; i < 10; i++) {
             if (topPlayers[i] == player) {
-                return i + 1; // Rang commence à 1
+                return i + 1;
             }
         }
-        return 0; // Pas dans le top 10
+        return 0;
     }
     
-    /**
-     * @notice Récupère les stats complètes d'un joueur
-     * @param player Adresse du joueur
-     * @return PlayerStats du joueur
-     */
-    function getPlayerStats(address player) external view returns (PlayerStats memory) {
-        return players[player];
+    function getPlayerStats(address player) external view returns (
+        uint256 highestScore,
+        uint256 totalKills,
+        uint256 totalSessions,
+        uint256 averageAccuracy,
+        uint256 lastUpdated,
+        bool exists
+    ) {
+        PlayerStats memory stats = players[player];
+        uint256 avgAccuracy = stats.totalSessions > 0 
+            ? stats.totalAccuracy / stats.totalSessions 
+            : 0;
+        
+        return (
+            stats.highestScore,
+            stats.totalKills,
+            stats.totalSessions,
+            avgAccuracy,
+            stats.lastUpdated,
+            stats.exists
+        );
     }
     
-    /**
-     * @notice Récupère les adresses des top 10 joueurs
-     * @return Array des adresses
-     */
-    function getTopPlayersAddresses() external view returns (address[10] memory) {
-        return topPlayers;
+    function getGlobalStats() external view returns (
+        uint256 _totalPlayers,
+        uint256 _totalSessions,
+        uint256 highestScoreEver,
+        address topPlayer
+    ) {
+        uint256 maxScore = 0;
+        address top = address(0);
+        
+        if (topPlayers[0] != address(0)) {
+            top = topPlayers[0];
+            maxScore = players[top].highestScore;
+        }
+        
+        return (totalPlayers, totalSessions, maxScore, top);
     }
     
     // ============================================
-    // ADMIN FUNCTIONS
+    // ADMIN
     // ============================================
     
-    /**
-     * @notice Change l'adresse du serveur de jeu autorisé
-     * @param newGameServer Nouvelle adresse du serveur
-     */
-    function setGameServer(address newGameServer) external onlyOwner {
-        require(newGameServer != address(0), "Invalid address");
-        address oldServer = gameServer;
-        gameServer = newGameServer;
-        emit GameServerUpdated(oldServer, newGameServer);
+    function setGameServer(address newServer) external onlyOwner {
+        require(newServer != address(0), "Invalid address");
+        gameServer = newServer;
     }
     
-    /**
-     * @notice Transfère la propriété du contrat
-     * @param newOwner Nouvelle adresse du propriétaire
-     */
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "Invalid address");
         owner = newOwner;

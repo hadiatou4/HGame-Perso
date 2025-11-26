@@ -7,7 +7,8 @@
     "test-submit": "ts-node src/test-submit.ts",
     "subscribe": "ts-node src/subscribe-sessions.ts",
     "read-history": "ts-node src/read-sessions.ts",
-    "aggregator": "ts-node src/leaderboard-aggregator.ts"
+    "event-listener": "ts-node src/event-listener.ts",
+    "read-lead": "ts-node src/read-leaderboard-topic.ts"
   },
   "keywords": [
     "hedera",

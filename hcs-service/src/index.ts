@@ -5,21 +5,34 @@ import { submitSession, GameSession, validateSessionData } from './submit-sessio
 import { readSessions, getPlayerSessions, getLatestSessions, getLeaderboard } from './read-sessions';
 import { HederaClient } from './hedera-client';
 import ContractClient from './contract-client';
+import { readLeaderboardTopic } from './read-leaderboard-topic';
+import { MarketplaceClient } from './marketplace-client';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialiser le client du contrat (si configuré)
+// Initialiser le client du contrat leaderboard
 let contractClient: ContractClient | null = null;
 try {
   if (process.env.LEADERBOARD_CONTRACT_ADDRESS) {
     contractClient = new ContractClient();
-    console.log('✅ Contract client initialized');
+    console.log('Contract client initialized');
   }
 } catch (error) {
-  console.warn('⚠️  Contract client not initialized:', error);
+  console.warn('Contract client not initialized:', error);
+}
+
+// Initialiser le client marketplace
+let marketplaceClient: MarketplaceClient | null = null;
+try {
+  if (process.env.MARKETPLACE_CONTRACT_ADDRESS && process.env.NFT_CONTRACT_ADDRESS) {
+    marketplaceClient = new MarketplaceClient();
+    console.log('Marketplace client initialized');
+  }
+} catch (error) {
+  console.warn('Marketplace client not initialized:', error);
 }
 
 // Middleware
@@ -57,8 +70,12 @@ app.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     network: HederaClient.getNetwork(),
     topicId: process.env.GAME_SESSION_TOPIC_ID || 'NOT_SET',
+    leaderboardTopicId: process.env.LEADERBOARD_TOPIC_ID || 'NOT_SET',
     contractAddress: process.env.LEADERBOARD_CONTRACT_ADDRESS || 'NOT_SET',
     contractAvailable: !!contractClient,
+    marketplaceAddress: process.env.MARKETPLACE_CONTRACT_ADDRESS || 'NOT_SET',
+    nftContractAddress: process.env.NFT_CONTRACT_ADDRESS || 'NOT_SET',
+    marketplaceAvailable: !!marketplaceClient,
     errors: validation.errors
   });
 });
@@ -80,25 +97,55 @@ app.post('/api/sessions', async (req: Request, res: Response) => {
       });
     }
 
-    const result = await submitSession(sessionData);
+    console.log('Step 1/2: Submitting to HCS Topic GameSession...');
+    const hcsResult = await submitSession(sessionData);
 
-    if (result.success) {
-      res.status(201).json({
-        success: true,
-        data: {
-          messageId: result.messageId,
-          topicId: result.topicId,
-          sequenceNumber: result.sequenceNumber,
-          consensusTimestamp: result.consensusTimestamp,
-          transactionId: result.transactionId
-        }
-      });
-    } else {
-      res.status(500).json({
+    if (!hcsResult.success) {
+      return res.status(500).json({
         success: false,
-        error: result.error || 'Failed to submit session'
+        error: hcsResult.error || 'Failed to submit session to HCS'
       });
     }
+
+    console.log(`Submitted to HCS: ${hcsResult.messageId}`);
+
+    let contractTxHash: string | undefined;
+    if (contractClient) {
+      console.log('Step 2/2: Submitting to Smart Contract...');
+      
+      const contractResult = await contractClient.submitSession(
+        sessionData.player,
+        sessionData.score,
+        sessionData.kills,
+        sessionData.accuracy,
+        sessionData.timeSurvived,
+        Math.floor(sessionData.timestamp / 1000),
+        hcsResult.messageId || 'unknown'
+      );
+
+      if (contractResult.success) {
+        contractTxHash = contractResult.txHash;
+        console.log(`Smart Contract updated: ${contractTxHash}`);
+      } else {
+        console.warn('Failed to submit to smart contract:', contractResult.error);
+      }
+    } else {
+      console.warn('Contract client not available, skipping smart contract submission');
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        messageId: hcsResult.messageId,
+        topicId: hcsResult.topicId,
+        sequenceNumber: hcsResult.sequenceNumber,
+        consensusTimestamp: hcsResult.consensusTimestamp,
+        transactionId: hcsResult.transactionId,
+        contractTxHash: contractTxHash,
+        contractSubmitted: !!contractTxHash
+      }
+    });
+
   } catch (error) {
     console.error('Error submitting session:', error);
     res.status(500).json({
@@ -180,9 +227,6 @@ app.get('/api/sessions/player/:address', async (req: Request, res: Response) => 
 // LEADERBOARD ENDPOINTS
 // ========================================
 
-/**
- * GET /api/leaderboard - Leaderboard depuis HCS (par défaut)
- */
 app.get('/api/leaderboard', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
@@ -203,9 +247,39 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/leaderboard/contract - Leaderboard depuis le smart contract
- */
+app.get('/api/leaderboard/topic', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+    
+    console.log('Reading Leaderboard Topic messages...');
+    const messages = await readLeaderboardTopic(limit);
+
+    if (messages.length === 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
+        message: 'No leaderboard data published yet. Play a game to populate it!'
+      });
+    }
+
+    res.json({
+      success: true,
+      source: 'leaderboard-topic',
+      topicId: process.env.LEADERBOARD_TOPIC_ID,
+      count: messages.length,
+      data: messages
+    });
+
+  } catch (error) {
+    console.error('Error reading leaderboard topic:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 app.get('/api/leaderboard/contract', async (req: Request, res: Response) => {
   if (!contractClient) {
     return res.status(503).json({
@@ -217,15 +291,14 @@ app.get('/api/leaderboard/contract', async (req: Request, res: Response) => {
   try {
     const top10 = await contractClient.getTop10();
 
-    // Formater les données pour correspondre à l'interface HCS
     const formattedLeaderboard = top10
-      .filter(player => player.exists) // Filtrer les slots vides
+      .filter(player => player.exists)
       .map(player => ({
         player: player.playerAddress,
         highestScore: Number(player.highestScore),
         totalKills: Number(player.totalKills),
         totalSessions: Number(player.totalSessions),
-        averageAccuracy: 0, // Pas stocké dans le contrat pour l'instant
+        averageAccuracy: 0,
         lastUpdated: Number(player.lastUpdated)
       }));
 
@@ -245,9 +318,6 @@ app.get('/api/leaderboard/contract', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/leaderboard/contract/player/:address - Stats d'un joueur depuis le contrat
- */
 app.get('/api/leaderboard/contract/player/:address', async (req: Request, res: Response) => {
   if (!contractClient) {
     return res.status(503).json({
@@ -292,6 +362,140 @@ app.get('/api/leaderboard/contract/player/:address', async (req: Request, res: R
 });
 
 // ========================================
+// MARKETPLACE ENDPOINTS
+// ========================================
+
+app.get('/api/marketplace/listings', async (req: Request, res: Response) => {
+  if (!marketplaceClient) {
+    return res.status(503).json({
+      success: false,
+      error: 'Marketplace not available. Check MARKETPLACE_CONTRACT_ADDRESS in .env'
+    });
+  }
+
+  try {
+    console.log('Fetching marketplace listings...');
+    const listings = await marketplaceClient.getActiveListings();
+
+    const enrichedListings = await Promise.all(
+      listings.map(async (listing) => {
+        const metadata = await marketplaceClient.getNFTMetadata(listing.tokenId);
+        return {
+          ...listing,
+          metadata
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      count: enrichedListings.length,
+      data: enrichedListings
+    });
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/api/marketplace/list', async (req: Request, res: Response) => {
+  if (!marketplaceClient) {
+    return res.status(503).json({
+      success: false,
+      error: 'Marketplace not available'
+    });
+  }
+
+  try {
+    const { tokenId, price } = req.body;
+
+    if (!tokenId || !price) {
+      return res.status(400).json({
+        success: false,
+        error: 'tokenId and price are required'
+      });
+    }
+
+    if (parseFloat(price) <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Price must be greater than 0'
+      });
+    }
+
+    console.log(`Listing NFT ${tokenId} for ${price} HBAR...`);
+    const result = await marketplaceClient.listNFT(tokenId, price);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        listingId: result.listingId,
+        txHash: result.txHash
+      }
+    });
+  } catch (error) {
+    console.error('Error listing NFT:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/api/marketplace/cancel', async (req: Request, res: Response) => {
+  if (!marketplaceClient) {
+    return res.status(503).json({
+      success: false,
+      error: 'Marketplace not available'
+    });
+  }
+
+  try {
+    const { listingId } = req.body;
+
+    if (!listingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'listingId is required'
+      });
+    }
+
+    console.log(`Cancelling listing ${listingId}...`);
+    const result = await marketplaceClient.cancelListing(listingId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        txHash: result.txHash
+      }
+    });
+  } catch (error) {
+    console.error('Error cancelling listing:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// ========================================
 // ERROR HANDLING
 // ========================================
 
@@ -319,32 +523,39 @@ function startServer() {
   const validation = HederaClient.validateEnv();
   
   if (!validation.valid) {
-    console.error('❌ Environment validation failed:');
+    console.error('Environment validation failed:');
     validation.errors.forEach(err => console.error(`   - ${err}`));
-    console.error('\n💡 Please check your .env file');
+    console.error('\nPlease check your .env file');
     process.exit(1);
   }
 
   app.listen(PORT, () => {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🚀 HCS Game Session API Server');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`📡 Server running on: http://localhost:${PORT}`);
-    console.log(`🌐 Network: ${HederaClient.getNetwork()}`);
-    console.log(`📋 Topic ID: ${process.env.GAME_SESSION_TOPIC_ID}`);
-    console.log(`📝 Contract: ${process.env.LEADERBOARD_CONTRACT_ADDRESS || 'Not configured'}`);
-    console.log(`👤 Operator: ${HederaClient.getOperatorId()}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    console.log('📚 Available endpoints:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('HCS Game Session API Server');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`Server running on: http://localhost:${PORT}`);
+    console.log(`Network: ${HederaClient.getNetwork()}`);
+    console.log(`GameSession Topic: ${process.env.GAME_SESSION_TOPIC_ID}`);
+    console.log(`Leaderboard Topic: ${process.env.LEADERBOARD_TOPIC_ID}`);
+    console.log(`Leaderboard Contract: ${process.env.LEADERBOARD_CONTRACT_ADDRESS || 'Not configured'}`);
+    console.log(`Marketplace Contract: ${process.env.MARKETPLACE_CONTRACT_ADDRESS || 'Not configured'}`);
+    console.log(`NFT Contract: ${process.env.NFT_CONTRACT_ADDRESS || 'Not configured'}`);
+    console.log(`Operator: ${HederaClient.getOperatorId()}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('Available endpoints:');
     console.log('   GET  /health');
     console.log('   POST /api/sessions');
     console.log('   GET  /api/sessions');
     console.log('   GET  /api/sessions/latest');
     console.log('   GET  /api/sessions/player/:address');
-    console.log('   GET  /api/leaderboard (from HCS)');
-    console.log('   GET  /api/leaderboard/contract (from Smart Contract)');
+    console.log('   GET  /api/leaderboard');
+    console.log('   GET  /api/leaderboard/topic');
+    console.log('   GET  /api/leaderboard/contract');
     console.log('   GET  /api/leaderboard/contract/player/:address');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('   GET  /api/marketplace/listings');
+    console.log('   POST /api/marketplace/list');
+    console.log('   POST /api/marketplace/cancel');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   });
 }
 

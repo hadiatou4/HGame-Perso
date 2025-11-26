@@ -1,8 +1,8 @@
 {
   "network": "hederaTestnet",
-  "contractAddress": "0x8Bc92FB12455Df83c3fd93B6930D6e6a2bE50fa3",
-  "gameServer": "0x781435bc27070aa65967a4A9a95f198F8978B4cB",
-  "owner": "0x781435bc27070aa65967a4A9a95f198F8978B4cB",
-  "deployedAt": "2025-11-24T00:17:18.517Z",
-  "blockNumber": 27948455
+  "contractAddress": "0xc59065683D7B7c0E2F9C8dd50C69C17233021BD6",
+  "gameServer": "0x586b7DE650cf0e808573091af047f43B7b4D6363",
+  "owner": "0x586b7DE650cf0e808573091af047f43B7b4D6363",
+  "deployedAt": "2025-11-24T15:58:21.452Z",
+  "blockNumber": 27976686
 }

@@ -16,17 +16,79 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldServer",
+        "name": "player",
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newServer",
-        "type": "address"
+        "indexed": false,
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
       }
     ],
-    "name": "GameServerUpdated",
+    "name": "InvalidSessionRejected",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "blockNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "rank",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "player",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "highestScore",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalKills",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalSessions",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "averageAccuracy",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdated",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct LeaderboardManager.LeaderboardEntry[10]",
+        "name": "leaderboard",
+        "type": "tuple[10]"
+      }
+    ],
+    "name": "LeaderboardUpdated",
     "type": "event"
   },
   {
@@ -41,38 +103,50 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "rank",
+        "name": "oldScore",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newScore",
+        "type": "uint256"
+      }
+    ],
+    "name": "NewHighScore",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
         "name": "score",
         "type": "uint256"
-      }
-    ],
-    "name": "NewTopPlayer",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "player",
-        "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "newHighScore",
+        "name": "kills",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "sessionScore",
+        "name": "accuracy",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timeSurvived",
         "type": "uint256"
       },
       {
@@ -82,8 +156,34 @@
         "type": "string"
       }
     ],
-    "name": "ScoreUpdated",
+    "name": "SessionSubmitted",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_KILLS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_SCORE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -92,6 +192,34 @@
       {
         "internalType": "address",
         "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getGlobalStats",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "_totalPlayers",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalSessions",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "highestScoreEver",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "topPlayer",
         "type": "address"
       }
     ],
@@ -128,41 +256,34 @@
     "name": "getPlayerStats",
     "outputs": [
       {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "playerAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "highestScore",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalKills",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalSessions",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "lastUpdated",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "exists",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct LeaderboardManager.PlayerStats",
-        "name": "",
-        "type": "tuple"
+        "internalType": "uint256",
+        "name": "highestScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalKills",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSessions",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "averageAccuracy",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdated",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -175,8 +296,13 @@
       {
         "components": [
           {
+            "internalType": "uint256",
+            "name": "rank",
+            "type": "uint256"
+          },
+          {
             "internalType": "address",
-            "name": "playerAddress",
+            "name": "player",
             "type": "address"
           },
           {
@@ -196,31 +322,18 @@
           },
           {
             "internalType": "uint256",
-            "name": "lastUpdated",
+            "name": "averageAccuracy",
             "type": "uint256"
           },
           {
-            "internalType": "bool",
-            "name": "exists",
-            "type": "bool"
+            "internalType": "uint256",
+            "name": "lastUpdated",
+            "type": "uint256"
           }
         ],
-        "internalType": "struct LeaderboardManager.PlayerStats[10]",
+        "internalType": "struct LeaderboardManager.LeaderboardEntry[10]",
         "name": "",
         "type": "tuple[10]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getTopPlayersAddresses",
-    "outputs": [
-      {
-        "internalType": "address[10]",
-        "name": "",
-        "type": "address[10]"
       }
     ],
     "stateMutability": "view",
@@ -271,6 +384,11 @@
       },
       {
         "internalType": "uint256",
+        "name": "totalAccuracy",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "lastUpdated",
         "type": "uint256"
       },
@@ -287,11 +405,54 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "newGameServer",
+        "name": "newServer",
         "type": "address"
       }
     ],
     "name": "setGameServer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "score",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "kills",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "accuracy",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timeSurvived",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "hcsMessageId",
+        "type": "string"
+      }
+    ],
+    "name": "submitSession",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -329,6 +490,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "totalSessions",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -337,34 +511,6 @@
       }
     ],
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "player",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "sessionScore",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "kills",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "hcsMessageId",
-        "type": "string"
-      }
-    ],
-    "name": "updatePlayerScore",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

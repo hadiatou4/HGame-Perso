@@ -66,9 +66,21 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IHederaTokenService__factory>;
     getContractFactory(
+      name: "IERC721",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC721__factory>;
+    getContractFactory(
       name: "LeaderboardManager",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.LeaderboardManager__factory>;
+    getContractFactory(
+      name: "Marketplace",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Marketplace__factory>;
+    getContractFactory(
+      name: "SimpleNFT",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SimpleNFT__factory>;
 
     getContractAt(
       name: "AccessControl",
@@ -136,10 +148,25 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IHederaTokenService>;
     getContractAt(
+      name: "IERC721",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC721>;
+    getContractAt(
       name: "LeaderboardManager",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.LeaderboardManager>;
+    getContractAt(
+      name: "Marketplace",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Marketplace>;
+    getContractAt(
+      name: "SimpleNFT",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SimpleNFT>;
 
     deployContract(
       name: "AccessControl",
@@ -194,9 +221,21 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IHederaTokenService>;
     deployContract(
+      name: "IERC721",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC721>;
+    deployContract(
       name: "LeaderboardManager",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.LeaderboardManager>;
+    deployContract(
+      name: "Marketplace",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Marketplace>;
+    deployContract(
+      name: "SimpleNFT",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleNFT>;
 
     deployContract(
       name: "AccessControl",
@@ -264,10 +303,25 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IHederaTokenService>;
     deployContract(
+      name: "IERC721",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC721>;
+    deployContract(
       name: "LeaderboardManager",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.LeaderboardManager>;
+    deployContract(
+      name: "Marketplace",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Marketplace>;
+    deployContract(
+      name: "SimpleNFT",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleNFT>;
 
     // default types
     getContractFactory(

@@ -51,36 +51,45 @@ export class ContractClient {
   }
 
   /**
-   * Mettre à jour le score d'un joueur sur le contrat
+   * Soumettre une session complète au contrat (100% on-chain)
    */
-  async updatePlayerScore(
+  async submitSession(
     playerAddress: string,
-    sessionScore: number,
+    score: number,
     kills: number,
+    accuracy: number,
+    timeSurvived: number,
+    timestamp: number,
     hcsMessageId: string
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
     try {
-      console.log('📤 Updating player score on contract...');
+      console.log('📤 Submitting session to smart contract...');
       console.log(`   Player: ${playerAddress}`);
-      console.log(`   Score: ${sessionScore}`);
+      console.log(`   Score: ${score}`);
       console.log(`   Kills: ${kills}`);
-      console.log(`   HCS Message: ${hcsMessageId}`);
+      console.log(`   Accuracy: ${accuracy}%`);
+      console.log(`   Time Survived: ${timeSurvived}s`);
 
-      // Appeler la fonction updatePlayerScore du contrat
-      const tx = await this.contract.updatePlayerScore(
+      // ⭐ CORRIGÉ: Utiliser la syntaxe ['methodName'] pour passer les options correctement
+      const tx = await this.contract['submitSession'](
         playerAddress,
-        BigInt(sessionScore),
+        BigInt(score),
         BigInt(kills),
-        hcsMessageId
+        BigInt(accuracy),
+        BigInt(timeSurvived),
+        BigInt(timestamp),
+        hcsMessageId,
+        {
+          gasLimit: 500000  // ⭐ Gas limit augmenté à 500k
+        }
       );
 
       console.log(`⏳ Transaction sent: ${tx.hash}`);
       console.log(`   Waiting for confirmation...`);
 
-      // Attendre la confirmation
       const receipt = await tx.wait();
 
-      console.log('✅ Transaction confirmed!');
+      console.log('✅ Session submitted and leaderboard updated!');
       console.log(`   Block: ${receipt.blockNumber}`);
       console.log(`   Gas used: ${receipt.gasUsed.toString()}`);
 
@@ -90,12 +99,25 @@ export class ContractClient {
       };
 
     } catch (error) {
-      console.error('❌ Error updating player score:', error);
+      console.error('❌ Error submitting session:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  /**
+   * Ancienne méthode updatePlayerScore (deprecated, gardée pour compatibilité)
+   */
+  async updatePlayerScore(
+    playerAddress: string,
+    sessionScore: number,
+    kills: number,
+    hcsMessageId: string
+  ): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    console.warn('⚠️ updatePlayerScore is deprecated, use submitSession instead');
+    return this.submitSession(playerAddress, sessionScore, kills, 0, 0, Date.now(), hcsMessageId);
   }
 
   /**

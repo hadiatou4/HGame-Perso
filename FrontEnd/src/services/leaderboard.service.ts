@@ -1,11 +1,46 @@
 import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { LeaderboardEntry } from '../models/leaderboard.model';
-import { HcsApiService } from './hcs-api.service';
-import { interval } from 'rxjs';
+import { interval, firstValueFrom } from 'rxjs';
+
+/**
+ * Structure du message du Topic Leaderboard
+ */
+interface LeaderboardTopicMessage {
+  timestamp: number;
+  blockNumber: number;
+  leaderboard: Array<{
+    rank: number;
+    player: string;
+    highestScore: number;
+    totalKills: number;
+    totalSessions: number;
+    averageAccuracy: number;
+    lastUpdated: number;
+  }>;
+}
+
+/**
+ * Réponse de l'API /api/leaderboard/topic
+ */
+interface LeaderboardTopicResponse {
+  success: boolean;
+  source: string;
+  topicId: string;
+  count: number;
+  data: Array<{
+    consensusTimestamp: string;
+    message: string; // JSON stringifié
+    sequenceNumber: number;
+  }>;
+}
 
 @Injectable({ providedIn: 'root' })
 export class LeaderboardService {
-  private hcsApi = inject(HcsApiService);
+  private http = inject(HttpClient);
+  
+  // URL du backend HCS
+  private readonly API_URL = 'http://localhost:3001'; // Change si nécessaire
 
   private readonly _leaderboardData = signal<LeaderboardEntry[]>([]);
   public readonly leaderboardData = this._leaderboardData.asReadonly();
@@ -16,6 +51,9 @@ export class LeaderboardService {
   private readonly _error = signal<string | null>(null);
   public readonly error = this._error.asReadonly();
 
+  private readonly _lastUpdate = signal<Date | null>(null);
+  public readonly lastUpdate = this._lastUpdate.asReadonly();
+
   constructor() {
     this.getLeaderboard();
     
@@ -25,6 +63,9 @@ export class LeaderboardService {
     });
   }
 
+  /**
+   * Récupère le leaderboard depuis le Topic Leaderboard HCS
+   */
   async getLeaderboard(silent: boolean = false) {
     if (!silent) {
       this._isLoading.set(true);
@@ -32,20 +73,87 @@ export class LeaderboardService {
     this._error.set(null);
 
     try {
-      const response = await this.hcsApi.getLeaderboard(10).toPromise();
+      console.log('🔥 Fetching leaderboard from Topic Leaderboard...');
 
-      if (response && response.success) {
-        // Avatars emoji (comme avant)
+      // Appeler le backend pour récupérer les messages du Topic Leaderboard
+      const response = await firstValueFrom(
+        this.http.get<LeaderboardTopicResponse>(`${this.API_URL}/api/leaderboard/topic`)
+      );
+
+      if (response && response.success && response.data.length > 0) {
+        // Prendre le dernier message (le plus récent)
+        const latestMessage = response.data[response.data.length - 1];
+        const messageData: LeaderboardTopicMessage = JSON.parse(latestMessage.message);
+
+        console.log('✅ Leaderboard loaded from Topic');
+        console.log(`   Block: ${messageData.blockNumber}`);
+        console.log(`   Timestamp: ${new Date(messageData.timestamp).toISOString()}`);
+        console.log(`   Entries: ${messageData.leaderboard.length}`);
+
+        // Avatars emoji
         const avatars = ['🤖', '👽', '👾', '🚀', '🛸', '☄️', '✨', '🌟', '🧑‍🚀', '🪐'];
 
-        // Mapper les données HCS vers LeaderboardEntry
+        // Mapper vers LeaderboardEntry
+        const leaderboardEntries: LeaderboardEntry[] = messageData.leaderboard
+          .filter(entry => entry.player !== '0x0000000000000000000000000000000000000000')
+          .map((entry, index) => ({
+            rank: entry.rank,
+            player: this.formatPlayerName(entry.player),
+            score: entry.highestScore,
+            avatar: avatars[index % avatars.length],
+            
+            // Champs additionnels
+            highestScore: entry.highestScore,
+            totalKills: entry.totalKills,
+            averageAccuracy: entry.averageAccuracy,
+            totalSessions: entry.totalSessions
+          }));
+
+        this._leaderboardData.set(leaderboardEntries);
+        this._lastUpdate.set(new Date(messageData.timestamp));
+        
+      } else {
+        console.warn('⚠️ No leaderboard data found in Topic. Using fallback...');
+        await this.getFallbackLeaderboard();
+      }
+    } catch (error) {
+      console.error('❌ Error fetching leaderboard from Topic:', error);
+      console.log('🔄 Trying fallback leaderboard from HCS aggregation...');
+      await this.getFallbackLeaderboard();
+    } finally {
+      if (!silent) {
+        this._isLoading.set(false);
+      }
+    }
+  }
+
+  /**
+   * Fallback : Récupère le leaderboard depuis l'agrégation HCS (ancienne méthode)
+   */
+  private async getFallbackLeaderboard() {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<{
+          success: boolean;
+          data: Array<{
+            player: string;
+            highestScore: number;
+            totalKills: number;
+            averageAccuracy: number;
+            totalSessions: number;
+          }>;
+        }>(`${this.API_URL}/api/leaderboard`)
+      );
+
+      if (response && response.success) {
+        const avatars = ['🤖', '👽', '👾', '🚀', '🛸', '☄️', '✨', '🌟', '🧑‍🚀', '🪐'];
+
         const leaderboardEntries: LeaderboardEntry[] = response.data.map((hcsEntry, index) => ({
           rank: index + 1,
           player: this.formatPlayerName(hcsEntry.player),
           score: hcsEntry.highestScore,
           avatar: avatars[index % avatars.length],
           
-          // Champs additionnels HCS
           highestScore: hcsEntry.highestScore,
           totalKills: hcsEntry.totalKills,
           averageAccuracy: hcsEntry.averageAccuracy,
@@ -53,17 +161,11 @@ export class LeaderboardService {
         }));
 
         this._leaderboardData.set(leaderboardEntries);
-        console.log('Leaderboard loaded from HCS:', leaderboardEntries.length, 'players');
-      } else {
-        throw new Error('Failed to load leaderboard from HCS');
+        console.log('✅ Fallback leaderboard loaded:', leaderboardEntries.length, 'players');
       }
     } catch (error) {
-      console.error(' Error fetching leaderboard:', error);
-      this._error.set(error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      if (!silent) {
-        this._isLoading.set(false);
-      }
+      console.error('❌ Error fetching fallback leaderboard:', error);
+      this._error.set('Unable to load leaderboard');
     }
   }
 

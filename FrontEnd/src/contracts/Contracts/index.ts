@@ -3,5 +3,9 @@
 /* eslint-disable */
 import type * as gamenftrewardSol from "./Gamenftreward.sol";
 export type { gamenftrewardSol };
+import type * as interfaces from "./interfaces";
+export type { interfaces };
 export type { IHederaTokenService } from "./IHederaTokenService";
 export type { LeaderboardManager } from "./LeaderboardManager";
+export type { Marketplace } from "./Marketplace";
+export type { SimpleNFT } from "./SimpleNFT";
