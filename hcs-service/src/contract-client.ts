@@ -70,7 +70,7 @@ export class ContractClient {
       console.log(`   Accuracy: ${accuracy}%`);
       console.log(`   Time Survived: ${timeSurvived}s`);
 
-      // ⭐ CORRIGÉ: Utiliser la syntaxe ['methodName'] pour passer les options correctement
+      //  Utiliser la syntaxe ['methodName'] pour passer les options correctement
       const tx = await this.contract['submitSession'](
         playerAddress,
         BigInt(score),
@@ -80,7 +80,7 @@ export class ContractClient {
         BigInt(timestamp),
         hcsMessageId,
         {
-          gasLimit: 500000  // ⭐ Gas limit augmenté à 500k
+          gasLimit: 500000  
         }
       );
 
@@ -99,7 +99,7 @@ export class ContractClient {
       };
 
     } catch (error) {
-      console.error('❌ Error submitting session:', error);
+      console.error(' Error submitting session:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -116,7 +116,7 @@ export class ContractClient {
     kills: number,
     hcsMessageId: string
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    console.warn('⚠️ updatePlayerScore is deprecated, use submitSession instead');
+    console.warn(' updatePlayerScore is deprecated, use submitSession instead');
     return this.submitSession(playerAddress, sessionScore, kills, 0, 0, Date.now(), hcsMessageId);
   }
 
@@ -142,7 +142,7 @@ export class ContractClient {
         exists: player.exists
       }));
     } catch (error) {
-      console.error('❌ Error fetching top 10:', error);
+      console.error('Error fetching top 10:', error);
       throw error;
     }
   }
@@ -155,7 +155,7 @@ export class ContractClient {
       const rank = await this.contract.getPlayerRank(playerAddress);
       return Number(rank);
     } catch (error) {
-      console.error('❌ Error fetching player rank:', error);
+      console.error('Error fetching player rank:', error);
       return 0;
     }
   }

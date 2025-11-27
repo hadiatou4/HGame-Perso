@@ -11,7 +11,7 @@ export interface GameSession {
   nonce: string;               // Unique nonce to prevent replay attacks
   
   // Game statistics
-  score: number;               // Final score
+  score: number;               // Final score 
   kills: number;               // Number of kills
   accuracy: number;            // Shooting accuracy (0-100)
   timeSurvived: number;        // Time survived in seconds
