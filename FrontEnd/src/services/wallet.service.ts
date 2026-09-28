@@ -3,12 +3,6 @@ import { WalletState } from '../models/wallet.model';
 import { SupabaseService } from './supabase.service';
 import { ReownService } from './reown.service';
 import { watchAccount, getAccount, getBalance } from '@wagmi/core';
-import {
-  Client,
-  AccountId,
-  PrivateKey,
-  AccountInfoQuery,
-} from '@hashgraph/sdk';
 @Injectable({ providedIn: 'root' })
 export class WalletService {
   private supabase = inject(SupabaseService);
@@ -140,25 +134,20 @@ export class WalletService {
   //   return `0.0.${numericPart}`;
   // }
 
+  // Resolve the Hedera account ID (0.0.x) of an EVM address through the public
+  // Mirror Node REST API. Read-only: no operator account or private key needed.
   private async evmAddressToAccountId(
     evmAddress: string
   ): Promise<string | null> {
     try {
-      const client = Client.forTestnet();
-      const myid = '0.0.6364685';
-      const mykey =
-        '3030020100300706052b8104000a04220420db7a7638ffc69e964d9ea01ce446bbaecd1c919053b155e11bcc8b7171a3176f';
-      // Optionnel : définir un operator si nécessaire
-      client.setOperator(myid, mykey);
-
-      // Crée un alias Hedera depuis l'adresse EVM
-      const aliasAccountId = AccountId.fromEvmAddress(0, 0, evmAddress);
-
-      // Résout l'alias sur le Testnet
-      const accountInfo = await new AccountInfoQuery()
-        .setAccountId(aliasAccountId)
-        .execute(client);
-      return accountInfo.accountId.toString(); // ex: "0.0.12345"
+      const response = await fetch(
+        `https://testnet.mirrornode.hedera.com/api/v1/accounts/${evmAddress}`
+      );
+      if (!response.ok) {
+        throw new Error(`Mirror Node returned ${response.status}`);
+      }
+      const accountInfo = await response.json();
+      return accountInfo.account ?? null; // ex: "0.0.12345"
     } catch (error) {
       console.error('❌ Failed to resolve Hedera Account ID from EVM:', error);
       return null;
